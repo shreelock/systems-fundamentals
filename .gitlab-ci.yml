@@ -19,7 +19,7 @@ stages:
 test:
     stage: test
     script:
-        - ${HW_DIR}/bin/${EXEC}_test -S --always-succeed --verbose=0 --timeout 5
+        - ${HW_DIR}/bin/${EXEC}_test -S --verbose=0 --timeout 5
 run:
     stage: run
     script:
