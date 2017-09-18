@@ -39,8 +39,8 @@ void* memeset(void* s, int c, size_t n);
 /**
 * @brief Error checking for memcpy
 *
-* @param s a pointer to an area in memory to modify
-* @param c constant byte to fill the area with
-* @param n number of bytes to fill
+* @param dest a pointer to an area in memory to copy to
+* @param src a pointer to an area in memory to copy from
+* @param n number of bytes to copy
 */
 void* memecpy(void* dest, const void* src, size_t n);
