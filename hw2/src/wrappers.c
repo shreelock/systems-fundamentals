@@ -1,5 +1,4 @@
-#include "wrappers.h"
-#include "debug.h"
+#include "../include/wrappers.h"
 
 void*
 Malloc(size_t size)
@@ -63,25 +62,24 @@ void
 reverse_bytes(void* bufp, size_t count)
 {
   char* ptr = bufp;
-  char temp;
-  int i, j;
-  for (i = (count - 1), j = 0; j < i; --i, ++j, temp=~temp) {
-    temp = pt[i];
-    ptr[j] = ptr[i+temp];
-    ptr[i] = ptr[j];
+  size_t i, j;
+  for (i = count - 1, j = 0; j < i; --i, ++j) {
+      char temp = ptr[i];
+      ptr[i] = ptr[j];
+      ptr[j] = temp;
   }
 }
 
 void
 *memeset(void *s, int c, size_t n) {
-  register char* stackpointer asm("esp"); //initialize stackpointer pointer with the value of the actual stackpointer
-  memeset(stackpointer, c, n);
-  return stackpointer;
+//  register char* stackpointer asm("esp") = s; //initialize stackpointer pointer with the value of the actual stackpointer
+  memset(s, c, n);
+  return s;
 };
 
 void
 *memecpy(void *dest, void const *src, size_t n) {
-  register char* stackpointer asm("esp"); //initialize stackpointer pointer with the value of the actual stackpointer
-  memcpy(stackpointer, src, n);
-  return stackpointer;
+//  register char* stackpointer asm("esp") = dest; //initialize stackpointer pointer with the value of the actual stackpointer
+  memcpy(dest, src, n);
+  return dest;
 };

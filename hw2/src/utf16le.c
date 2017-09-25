@@ -1,7 +1,5 @@
-#include "utf.h"
-#include "debug.h"
-#include "wrappers.h"
-#include <unistd.h>
+#include "../include/utf.h"
+#include "../include/wrappers.h"
 
 int
 from_utf16le_to_utf16be(int infile, int outfile)
@@ -37,8 +35,30 @@ from_utf16le_to_utf16be(int infile, int outfile)
 int
 from_utf16le_to_utf8(int infile, int outfile)
 {
-  /* TODO */
-  return -1;
+    utf16_glyph_t buf;
+    utf8_glyph_t utf8_glyph1;
+    code_point_t code_point;
+    ssize_t bytes_read;
+    int ret = -1;
+
+
+    while ((bytes_read = read_to_bigendian(infile, &(buf.lower_bytes), 2)) > 0) {
+        reverse_bytes(&buf.lower_bytes, sizeof(buf.lower_bytes));
+        if(is_upper_surrogate_pair(buf)) {
+            if(read_to_bigendian(infile, &buf.upper_bytes, 2) > 0) {
+                printf("\nbuf lower bytes : %x ", buf.upper_bytes);
+                reverse_bytes(&buf.upper_bytes,sizeof(buf.upper_bytes));
+            }
+        } else {
+            buf.upper_bytes = 0x0000;
+        }
+        code_point = utf16_glyph_to_code_point(&buf);
+        size_t size_of_glyph;
+        utf8_glyph1 = code_point_to_utf8_glyph(code_point, &size_of_glyph);
+        write_to_bigendian(outfile, &utf8_glyph1, size_of_glyph);
+    }
+    ret = (int) bytes_read;
+    return ret;
 }
 
 utf16_glyph_t

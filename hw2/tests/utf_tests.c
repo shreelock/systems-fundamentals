@@ -1,6 +1,6 @@
 #include <criterion/criterion.h>
-#include "utf.h"
-#include "wrappers.h"
+#include "../include/utf.h"
+#include "../include/wrappers.h"
 
 Test(utf16_suite, code_point_surrogate_pair) {
     code_point_t cp1 = 0x21, cp2 = 0xe9, cp3 = 0x77e5, cp4 = 0x1F913;
@@ -60,30 +60,42 @@ Test(utf8_suite, code_point_size) {
 Test(utf8_suite, encode_funcs) {
     utf8_glyph_t exp1, exp2, exp3, exp4;
     utf8_glyph_t g1, g2, g3, g4;
+    printf("\nStart:\n------------------\n");
+    fflush(stdout);
     code_point_t cp1 = 0x21, cp2 = 0xe9, cp3 = 0x77e5, cp4 = 0x1F913;
+
+    printf("cp1,2,3,4 : %x,%x,%x,%x\n",cp1,cp2,cp3,cp4);
+    fflush(stdout);
+
     g1 = utf8_one_byte_encode(cp1);
-    g2 = utf8_two_byte_encode(cp2);
-    g3 = utf8_three_byte_encode(cp3);
-    g4 = utf8_four_byte_encode(cp4);
-
     exp1.bytes[0].byte = 0x21;
+    cr_assert_eq(memcmp(&g1, &exp1, 1), 0);
+    printf("Passed1\n");
 
+    g2 = utf8_two_byte_encode(cp2);
     exp2.bytes[1].byte = 0xa9;
     exp2.bytes[0].byte = 0xc3;
+    cr_assert_eq(memcmp(&g2, &exp2, 2), 0);
+    printf("Passed2\n");
 
+    g3 = utf8_three_byte_encode(cp3);
     exp3.bytes[2].byte = 0xa5;
     exp3.bytes[1].byte = 0x9f;
     exp3.bytes[0].byte = 0xe7;
+    cr_assert_eq(memcmp(&g3, &exp3, 3), 0);
+    printf("Passed3\n");
 
+    g4 = utf8_four_byte_encode(cp4);
     exp4.bytes[3].byte = 0x93;
     exp4.bytes[2].byte = 0xa4;
     exp4.bytes[1].byte = 0x9f;
     exp4.bytes[0].byte = 0xf0;
-
-    cr_assert_eq(memcmp(&g1, &exp1, 1), 0);
-    cr_assert_eq(memcmp(&g2, &exp2, 2), 0);
-    cr_assert_eq(memcmp(&g3, &exp3, 3), 0);
     cr_assert_eq(memcmp(&g4, &exp4, 4), 0);
+    printf("Passed4\n");
+
+
+    printf("\nEnd\n------------------\n");
+    fflush(stdout);
 }
 
 Test(wrappers_suite, reverse_bytes) {

@@ -1,7 +1,5 @@
-#include "utf.h"
-#include "debug.h"
-#include "wrappers.h"
-#include <unistd.h>
+#include "../include/utf.h"
+#include "../include/wrappers.h"
 
 int
 from_utf8_to_utf16le(int infile, int outfile)
@@ -197,13 +195,13 @@ get_utf8_decoding_function(size_t size)
 {
   switch(size) {
   case 1:
-    return &utf8_one_byte_decode();
+    return &utf8_one_byte_decode;
   case 2:
-    return &utf8_two_byte_decode();
+    return &utf8_two_byte_decode;
   case 3:
-    return &utf8_three_byte_decode();
+    return &utf8_three_byte_decode;
   case 4:
-    return &utf8_four_byte_decode();
+    return &utf8_four_byte_decode;
   }
   return NULL;
 }
