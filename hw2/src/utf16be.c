@@ -48,11 +48,15 @@ from_utf16be_to_utf8(int infile, int outfile)
 
 
     while ((bytes_read = read_to_bigendian(infile, &(buf.upper_bytes), 2)) > 0) {
-        reverse_bytes(&buf.upper_bytes, sizeof(buf.upper_bytes));
+        #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+            reverse_bytes(&buf.upper_bytes, sizeof(buf.upper_bytes));
+        #endif
         if(is_upper_surrogate_pair(buf)) {
             if(read_to_bigendian(infile, &buf.lower_bytes, 2) > 0) {
                 printf("\nbuf lower bytes : %x ", buf.lower_bytes);
+            #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
                 reverse_bytes(&buf.lower_bytes,sizeof(buf.lower_bytes));
+            #endif
             }
         } else {
             buf.lower_bytes = 0x0000;
@@ -75,8 +79,8 @@ code_point_to_utf16be_glyph(code_point_t code_point, size_t *size_of_glyph)
     memeset(&ret, 0, sizeof ret);
     if(is_code_point_surrogate(code_point)) {
         code_point -= 0x10000;
-        ret.upper_bytes = (code_point >> 10) + 0xD800;
-        ret.lower_bytes = (code_point & 0x3FF) + 0xDC00;
+        ret.upper_bytes = (uint16_t) ((code_point >> 10) + 0xD800);
+        ret.lower_bytes = (uint16_t) ((code_point & 0x3FF) + 0xDC00);
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         reverse_bytes(&ret.upper_bytes, 2);
         reverse_bytes(&ret.lower_bytes, 2);
