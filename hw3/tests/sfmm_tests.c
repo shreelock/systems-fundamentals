@@ -95,6 +95,7 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	void *w = sf_malloc(LIST_2_MIN); //160
 	void *x = sf_malloc(LIST_3_MIN); //544
 	void *y = sf_malloc(LIST_4_MIN); //2080
+	/* void *z = */ sf_malloc(1);          //32
 
 	int allocated_block_size[4] = {48, 160, 544, 2080};
 
