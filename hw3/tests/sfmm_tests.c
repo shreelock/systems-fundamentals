@@ -95,7 +95,7 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	void *w = sf_malloc(LIST_2_MIN); //160
 	void *x = sf_malloc(LIST_3_MIN); //544
 	void *y = sf_malloc(LIST_4_MIN); //2080
-	/* void *z = */ sf_malloc(1);          //32
+	/* void *z = */ sf_malloc(1); // 32
 
 	int allocated_block_size[4] = {48, 160, 544, 2080};
 
@@ -106,16 +106,21 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 
 	// First block in each list should be the most recently freed block
 	for (int i = 0; i < FREE_LIST_COUNT; i++) {
-		sf_free_header *fh = (sf_free_header *)&(seg_free_list[i].head);
+		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
 		cr_assert_not_null(fh, "list %d is NULL!", i);
 		cr_assert(fh->header.block_size << 4 == allocated_block_size[i], "Unexpected free block size!");
 		cr_assert(fh->header.allocated == 0, "Allocated bit is set!");
 	}
 
-	// There should be one free block in each list
+	// There should be one free block in each list, 2 blocks in list 3 of size 544 and 1232
 	for (int i = 0; i < FREE_LIST_COUNT; i++) {
-		sf_free_header *fh = (sf_free_header *)&(seg_free_list[i].head);
-		cr_assert_null(fh->next, "More than 1 block in freelist [%d]!", i);
+		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
+		if (i != 2)
+		    cr_assert_null(fh->next, "More than 1 block in freelist [%d]!", i);
+		else {
+		    cr_assert_not_null(fh->next, "Less than 2 blocks in freelist [%d]!", i);
+		    cr_assert_null(fh->next->next, "More than 2 blocks in freelist [%d]!", i);
+		}
 	}
 }
 
