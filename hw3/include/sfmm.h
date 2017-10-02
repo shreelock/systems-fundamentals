@@ -65,20 +65,20 @@
 
 /* Struct for an allocated block header */
 typedef struct {
-    uint64_t         unused : HEADER_UNUSED_BITS;
-    uint64_t     block_size : BLOCK_SIZE_BITS;
-    uint64_t     two_zeroes : TWO_ZEROES;
-    uint64_t         padded : PADDED_BITS;
     uint64_t      allocated : ALLOCATED_BITS;
+    uint64_t         padded : PADDED_BITS;
+    uint64_t     two_zeroes : TWO_ZEROES;
+    uint64_t     block_size : BLOCK_SIZE_BITS;
+    uint64_t         unused : HEADER_UNUSED_BITS;
 } __attribute__((packed)) sf_header;
 
 /* Struct for a block footer */
 typedef struct {
-    uint64_t requested_size : REQUESTED_SIZE_BITS;
-    uint64_t     block_size : BLOCK_SIZE_BITS;
-    uint64_t     two_zeroes : TWO_ZEROES;
-    uint64_t         padded : PADDED_BITS;
     uint64_t      allocated : ALLOCATED_BITS;
+    uint64_t         padded : PADDED_BITS;
+    uint64_t     two_zeroes : TWO_ZEROES;
+    uint64_t     block_size : BLOCK_SIZE_BITS;
+    uint64_t requested_size : REQUESTED_SIZE_BITS;
 } __attribute__((packed)) sf_footer;
 
 /* Struct for a free block header */
