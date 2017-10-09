@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 #include <errno.h>
 #include <signal.h>
-#include "sfmm.h"
+#include "../include/sfmm.h"
 
 
 int find_list_index_from_size(int sz) {
@@ -24,7 +24,7 @@ Test(sf_memsuite_student, Malloc_an_Integer_check_freelist, .init = sf_mem_init,
 	sf_header *header = (sf_header*)((char*)x - 8);
 
 	/* There should be one block of size 4064 in list 3 */
-	free_list *fl = &seg_free_list[find_list_index_from_size(PAGE_SZ - (header->block_size << 4))];
+	free_list *fl = &seg_free_list[find_list_index_from_size((int) (PAGE_SZ - (header->block_size << 4)))];
 
 	cr_assert_not_null(fl, "Free list is null");
 
@@ -105,7 +105,8 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	sf_free(y);
 
 	// First block in each list should be the most recently freed block
-	for (int i = 0; i < FREE_LIST_COUNT; i++) {
+    int i;
+	for (i = 0; i < FREE_LIST_COUNT; i++) {
 		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
 		cr_assert_not_null(fh, "list %d is NULL!", i);
 		cr_assert(fh->header.block_size << 4 == allocated_block_size[i], "Unexpected free block size!");
@@ -113,7 +114,7 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	}
 
 	// There should be one free block in each list, 2 blocks in list 3 of size 544 and 1232
-	for (int i = 0; i < FREE_LIST_COUNT; i++) {
+	for (i = 0; i < FREE_LIST_COUNT; i++) {
 		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
 		if (i != 2)
 		    cr_assert_null(fh->next, "More than 1 block in freelist [%d]!", i);
