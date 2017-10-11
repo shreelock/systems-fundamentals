@@ -1,0 +1,58 @@
+Tests,Points,OutOf,Notes
+test_ascii_100_to_UTF16LE,1,1,
+test_ascii_1_to_UTF16LE,1,1,
+test_mixed_1000_to_UTF16LE,1,1,
+test_mixed_100_to_UTF16LE,1,1,
+test_mixed_10_to_UTF16LE,1,1,
+test_nonsurrogates_100_to_UTF16LE,1,1,
+test_nonsurrogates_1_to_UTF16LE,1,1,
+test_surrogates_100_to_UTF16LE,1,1,
+test_surrogates_1_to_UTF16LE,1,1,
+test_ascii_100_to_UTF16BE,0,1,Output file did not match expected.
+test_ascii_1_to_UTF16BE,0,1,Output file did not match expected.
+test_mixed_1000_to_UTF16BE,0,1,Output file did not match expected.
+test_mixed_100_to_UTF16BE,0,1,Output file did not match expected.
+test_mixed_10_to_UTF16BE,0,1,Output file did not match expected.
+test_nonsurrogates_100_to_UTF16BE,0,1,Output file did not match expected.
+test_nonsurrogates_1_to_UTF16BE,0,1,Output file did not match expected.
+test_surrogates_100_to_UTF16BE,0,1,Output file did not match expected.
+test_surrogates_1_to_UTF16BE,0,1,Output file did not match expected.
+test_large_file,0,5,Output file did not match expected.
+test_valgrind,3,3,
+test_ascii_100_to_UTF8,3,3,
+test_ascii_1_to_UTF8,3,3,
+test_mixed_1000_to_UTF8,3,3,
+test_mixed_100_to_UTF8,3,3,
+test_mixed_10_to_UTF8,3,3,
+test_nonsurrogates_100_to_UTF8,3,3,
+test_nonsurrogates_1_to_UTF8,3,3,
+test_surrogates_100_to_UTF8,3,3,
+test_surrogates_1_to_UTF8,3,3,
+test_ascii_100_to_UTF8,0,3,Output file did not match expected.
+test_ascii_1_to_UTF8,0,3,Output file did not match expected.
+test_mixed_1000_to_UTF8,0,3,Output file did not match expected.
+test_mixed_100_to_UTF8,0,3,Output file did not match expected.
+test_mixed_10_to_UTF8,0,3,Output file did not match expected.
+test_nonsurrogates_100_to_UTF8,0,3,Output file did not match expected.
+test_nonsurrogates_1_to_UTF8,0,3,Output file did not match expected.
+test_surrogates_100_to_UTF8,0,3,Output file did not match expected.
+test_surrogates_1_to_UTF8,0,3,Output file did not match expected.
+test_ascii_100_to_UTF16BE,0,2,Output file did not match expected.
+test_ascii_100_to_UTF16LE,0,2,Output file did not match expected.
+test_ascii_1_to_UTF16BE,0,2,Output file did not match expected.
+test_ascii_1_to_UTF16LE,0,2,Output file did not match expected.
+test_mixed_1000_to_UTF16BE,0,2,Output file did not match expected.
+test_mixed_1000_to_UTF16LE,0,2,Output file did not match expected.
+test_mixed_100_to_UTF16BE,0,2,Output file did not match expected.
+test_mixed_100_to_UTF16LE,0,2,Output file did not match expected.
+test_mixed_10_to_UTF16BE,0,2,Output file did not match expected.
+test_mixed_10_to_UTF16LE,0,2,Output file did not match expected.
+test_nonsurrogates_100_to_UTF16BE,0,2,Output file did not match expected.
+test_nonsurrogates_100_to_UTF16LE,0,2,Output file did not match expected.
+test_nonsurrogates_1_to_UTF16BE,0,2,Output file did not match expected.
+test_nonsurrogates_1_to_UTF16LE,0,2,Output file did not match expected.
+test_surrogates_100_to_UTF16BE,0,3,Output file did not match expected.
+test_surrogates_100_to_UTF16LE,0,3,Output file did not match expected.
+test_surrogates_1_to_UTF16BE,0,2,Output file did not match expected.
+test_surrogates_1_to_UTF16LE,0,2,Output file did not match expected.
+Total,39,118,
