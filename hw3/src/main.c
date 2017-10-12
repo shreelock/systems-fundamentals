@@ -1,66 +1,49 @@
 #include <stdio.h>
 #include "../include/sfmm.h"
 
+void test_mid_of_list();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
     mm_init();
     sf_snapshot();
+    test_mid_of_list();
 
-    double* ptr = sf_malloc(sizeof(double));
-    double* ptr1 = sf_malloc(sizeof(double));
-    double* ptr2 = sf_malloc(sizeof(double));
-    double* ptr3 = sf_malloc(sizeof(double));
-    double* ptr4 = sf_malloc(sizeof(double));
-    double* ptr5 = sf_malloc(sizeof(double));
-    double* ptr6 = sf_malloc(sizeof(double));
+    return EXIT_SUCCESS;
+}
+void test_mid_of_list(){
+
+    double* ptr = sf_malloc(10);
+    double* ptr1 = sf_malloc(64);
+    double* ptr2 = sf_malloc(32);
+    double* ptr3 = sf_malloc(32);
+    double* ptr4 = sf_malloc(32);
     *ptr = 199.82;
     *ptr1 = 320.00;
     *ptr2 = 320.00;
     *ptr3 = 320.00;
     *ptr4 = 320.00;
-    *ptr5 = 320.00;
-    *ptr6 = 320.00;
-
 
     sf_free(ptr);
-    sf_snapshot();
+    print_free_list();
     sf_free(ptr1);
-    sf_snapshot();
+    print_free_list();
     sf_free(ptr2);
-    sf_snapshot();
+    print_free_list();
     sf_free(ptr3);
-    sf_snapshot();
+    print_free_list();
     sf_free(ptr4);
-    sf_snapshot();
-    sf_free(ptr5);
-    sf_snapshot();
-    sf_free(ptr6);
-    sf_snapshot();
+    print_free_list();
 
-    double* ptr7 = sf_malloc(sizeof(double));
+    double* ptr7 = sf_malloc(35);
     *ptr7 = 320.00;
-    sf_snapshot();
+    print_free_list();
 
-//    double* ptr2 = sf_malloc(50*sizeof(double));
-//    double* ptr3 = sf_malloc(50*sizeof(double));
-//    double* ptr4 = sf_malloc(50*sizeof(double));
-//    double* ptr5 = sf_malloc(50*sizeof(double));
-//    double* ptr6 = sf_malloc(50*sizeof(double));
-//    double* ptr7 = sf_malloc(50*sizeof(double));
+    sf_free(ptr7);
+    print_free_list();
 
-//    *ptr1 = 320.00;
-//    *ptr2 = 320.00;
-//    *ptr3 = 320.00;
-//    *ptr4 = 320.00;
-//    *ptr5 = 320.00;
-//    *ptr6 = 320.00;
-//    *ptr7 = 320.00;
+    /* *
+     * This should Ideally parse through  list 1 to report one of the middle blocks.
+     * */
 
-//    printf("\n%f", *ptr3);
-
-//    sf_free(ptr);
-
-//    sf_mem_fini();
-
-    return EXIT_SUCCESS;
 }
