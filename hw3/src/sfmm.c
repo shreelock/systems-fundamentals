@@ -15,10 +15,10 @@
  * which will allow you to pass the address to sf_snapshot in a different file.
  */
 free_list seg_free_list[4] = {
-    {NULL, LIST_1_MIN, LIST_1_MAX},
-    {NULL, LIST_2_MIN, LIST_2_MAX},
-    {NULL, LIST_3_MIN, LIST_3_MAX},
-    {NULL, LIST_4_MIN, LIST_4_MAX}
+        {NULL, LIST_1_MIN, LIST_1_MAX},
+        {NULL, LIST_2_MIN, LIST_2_MAX},
+        {NULL, LIST_3_MIN, LIST_3_MAX},
+        {NULL, LIST_4_MIN, LIST_4_MAX}
 };
 int alignment = 16;
 int sf_errno = 0;
@@ -57,101 +57,93 @@ void *sf_malloc(size_t size_ip) {
     printf("\nFinal size of reqd. block : %d", (int)fin_size);
 
     // Now check if we have free blocks in any of the free lists
-    int minListIdx = getListIndexFromSize(fin_size);
-    for (int currListIdx = minListIdx ;
-         currListIdx < FREE_LIST_COUNT;
-         currListIdx++) {
+    for (int currListIdx = 0 ; currListIdx < FREE_LIST_COUNT; currListIdx++) {
+        printf("\nlist size limits : %d to %d", seg_free_list[currListIdx].min, seg_free_list[currListIdx].max);
+        if(fin_size <= seg_free_list[currListIdx].max) {
+            printf("\nChecking for list %d", currListIdx);
+            sf_free_header *list_head_ptr = seg_free_list[currListIdx].head;
+            if (list_head_ptr != NULL) {
+                printf("\nFound the correct non empty list index : %d", currListIdx);
+                printf("\nlist header is at : %p", list_head_ptr);
 
-        sf_free_header* list_head_ptr = seg_free_list[currListIdx].head;
-        if (list_head_ptr != NULL){
-            printf("\nFound the correct non empty list index : %d", currListIdx);
-            printf("\nlist header is at : %p", list_head_ptr);
+                sf_free_header *current_block = seg_free_list[currListIdx].head;
+                while (current_block != NULL) {
+                    if (current_block->header.block_size >= fin_size) {
 
-            sf_free_header* current_block = seg_free_list[currListIdx].head;
-            while (current_block != NULL) {
-                if (current_block->header.block_size > fin_size) {
-                    printf("\nBefore Splinting sizes : %d, %d, %d", (int) current_block->header.block_size, (int) fin_size, (int) (current_block->header.block_size - fin_size) );
-                    size_t left_size = current_block->header.block_size - fin_size;
-                    int is_splinter_created = left_size < 4*sizeof(sf_header);
+                        printf("\nBefore Splinting sizes : %d, %d, %d", (int) current_block->header.block_size,
+                               (int) fin_size, (int) (current_block->header.block_size - fin_size));
 
-                    if(is_splinter_created) {
-                        // Go full on, if splinter is created.
-                        fin_size = current_block->header.block_size;
-                    }
+                        size_t left_size = current_block->header.block_size - fin_size;
+                        int is_splinter_created = left_size <= 4 * sizeof(sf_header);
 
-                    // Doesn't matter to create. If we'll use it we'll use it.
-                    sf_free_header *new_free_block = current_block + fin_size;
-                    new_free_block->next = current_block->next;
-                    new_free_block->prev = current_block->prev;
+                        if (is_splinter_created) {
+                            // Go full on, if splinter is created.
+                            fin_size = current_block->header.block_size;
+                            printf("\n Splinter will be created, hence size = %d", (int)fin_size);
+                        }
 
-                    /* *
-                     * Create a returnable sf_header pointer
-                     * */
-                    sf_header *output_ptr_header = (sf_header *) current_block;
-                    output_ptr_header->allocated = 1;
-                    output_ptr_header->block_size = fin_size;
-                    output_ptr_header->padded = (uint64_t) padding_reqd;
+                        // Doesn't matter to create. If we'll use it we'll use it.
+                        sf_free_header *new_free_block = current_block + fin_size;
+                        sf_free_header *current_block_next = current_block->next;
+                        sf_free_header *current_block_prev = current_block->prev;
 
-                    printf("\nAllocated pointer is at : %p", output_ptr_header);
-                    void *returning_payload = output_ptr_header + sizeof(sf_header);
-                    printf("\nAllocated payload is at : %p", returning_payload);
-                    /* *
-                     * Payload is created. Nothing to do here now.
-                     * */
-
-
-
-                    /*
-                    if (current_block->prev != NULL) {
-                        current_block->prev->next = current_block->next;
-                        printf("\nSet current_block's prev->next");
-                    }
-
-                    if (current_block->next != NULL) {
-                        current_block->next->prev = current_block->prev;
-                        printf("\nSet current_block's next->prev");
-                    }
-                     */
-
-
-                    if (!is_splinter_created) {
-                        printf("\nBeginning to Create a new block");
                         /* *
-                         * Create a new block after slicing the older, only if no splinters
+                         * Create a returnable sf_header pointer
+                         * */
+                        sf_header *output_ptr_header = (sf_header *) current_block;
+                        output_ptr_header->allocated = 1;
+                        output_ptr_header->block_size = fin_size;
+                        output_ptr_header->padded = (uint64_t) padding_reqd;
+
+                        printf("\nAllocated pointer is at : %p", output_ptr_header);
+                        void *returning_payload = output_ptr_header + sizeof(sf_header);
+                        printf("\nAllocated payload is at : %p", returning_payload);
+                        /* *
+                         * Payload is created. Nothing to do here now.
                          * */
 
-                        new_free_block->header.block_size = left_size;
-                        printf("\nNew free block is created at : %p", new_free_block);
-                        int newListindex = getListIndexFromSize(left_size);
-                        printf("\nNew free block size : %lu", left_size);
-                        printf("\nNew free block's list index : %d", newListindex);
+                        if (!is_splinter_created) {
+                            printf("\nBeginning to Create a new block");
+                            /* *
+                             * Create a new block after slicing the older, only if no splinters
+                             * */
 
+                            new_free_block->header.block_size = left_size;
+                            printf("\nNew free block is created at : %p", new_free_block);
+                            int newListindex = getListIndexFromSize(left_size);
+                            printf("\nNew free block size : %lu", left_size);
+                            printf("\nNew free block's list index : %d", newListindex);
 
-//                        new_free_block->prev = seg_free_list[newListindex].head;
-//                        new_free_block->next = NULL;
+                            new_free_block->prev = current_block_prev;
+                            new_free_block->next = current_block_next;
 
-                        if (seg_free_list[newListindex].head != NULL)
-                            seg_free_list[newListindex].head->next = new_free_block;
-                        seg_free_list[newListindex].head = new_free_block;
+                            if (seg_free_list[newListindex].head != NULL)
+                                seg_free_list[newListindex].head->next = new_free_block;
+                            seg_free_list[newListindex].head = new_free_block;
 
-                        printf("\nNew list head is now pointing at : %p", new_free_block);
+                            printf("\nNew list head is now pointing at : %p", new_free_block);
 //                        sf_blockprint(new_free_block);
-                    }
+                        }
+                        if (seg_free_list[currListIdx].head == current_block) {
+                            seg_free_list[currListIdx].head = current_block->prev;
+                            printf("\nUpdated free list's header");
+//                            sf_snapshot();
+                        }
 
-                    if (seg_free_list[currListIdx].head == current_block) {
-                        seg_free_list[currListIdx].head = current_block->prev;
-                        printf("\nUpdated free list's header");
-                        sf_snapshot();
-                    }
 
-                    /* *
-                     * return output pointer
-                     * */
-                    return output_ptr_header + sizeof(sf_header);
+                        /* *
+                         * return output pointer
+                         * */
+                        return output_ptr_header + sizeof(sf_header);
+                    }
+                    current_block = current_block->prev;
+                    printf("\nMoving to the next free block on the list");
                 }
-                current_block = current_block->prev;
-                printf("\nMoving to the next free block on the list");
+            } else {
+                printf("\nGot an empty list : %d", currListIdx);
             }
+        } else {
+            printf("\nCould not satisfy size rule, list : %d", currListIdx);
         }
     }
     return NULL;

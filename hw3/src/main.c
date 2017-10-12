@@ -3,14 +3,38 @@
 
 void test_mid_of_list();
 
+void check_no_splinter_creation();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
     mm_init();
     sf_snapshot();
     test_mid_of_list();
-
+//    check_no_splinter_creation();
+    sf_snapshot();
     return EXIT_SUCCESS;
 }
+
+void check_no_splinter_creation(){
+    double *ptr = sf_malloc(10);
+    *ptr = 100;
+    double *ptr1 = sf_malloc(10);
+    *ptr1 = 100;
+
+    sf_free(ptr);
+    print_free_list();
+
+    sf_free(ptr1);
+    print_free_list();
+
+    double *ptr2 = sf_malloc(4);
+    print_free_list();
+
+    *ptr2 = 100;
+    sf_free(ptr2);
+    print_free_list();
+}
+
 void test_mid_of_list(){
 
     double* ptr = sf_malloc(10);
@@ -35,7 +59,7 @@ void test_mid_of_list(){
     sf_free(ptr4);
     print_free_list();
 
-    double* ptr7 = sf_malloc(35);
+    double* ptr7 = sf_malloc(4);
     *ptr7 = 320.00;
     print_free_list();
 
