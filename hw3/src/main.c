@@ -9,16 +9,44 @@ void check_heap_extension() ;
 
 void check_free_errors();
 
+void check_coal();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
 
+    check_coal();
 //    print_heap_overview();
 //    test_mid_of_list();
 //    check_no_splinter_creation();
-    check_heap_extension();
+//    check_heap_extension();
 //    check_free_errors();
 //    sf_snapshot();
     return EXIT_SUCCESS;
+}
+
+void check_coal(){
+    int* f2 = sf_malloc(2000);*f2=0;
+    sf_snapshot();
+    print_free_list();
+    int* f1 = sf_malloc(10);*f1=0;
+
+//    int* f3 = sf_malloc(10);
+//    int* f4 = sf_malloc(10);
+    sf_snapshot();
+//    print_free_list();
+//    print_free_list();
+//    sf_free(f3);
+//    sf_snapshot();
+//    print_free_list();
+    sf_free(f2);
+    sf_snapshot();
+//    print_free_list();
+//    sf_free(f2);
+//    sf_snapshot();
+//    print_free_list();
+    sf_free(f1);
+    sf_snapshot();
+//    print_free_list();
 }
 
 void check_free_errors(){

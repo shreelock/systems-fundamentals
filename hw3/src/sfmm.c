@@ -41,12 +41,12 @@ void *sf_malloc(size_t size_ip) {
      * 3. search in all the lists for appropriate block availability. if still not available, return null and    ENOMEM
      */
     fflush(stdout);
-    printf("\n--------------------------------New Allocation----------------------------");
+    //%%pintf("\n--------------------------------New Allocation----------------------------");
     if (size_ip > 4*PAGE_SZ || size_ip == 0) {
         sf_errno = EINVAL;
         return NULL;
     } else {
-        printf("\nRequest is of a valid size.");
+        //%%pintf("\nRequest is of a valid size.");
     }
 
     size_t size_hf = size_ip + sizeof(sf_header) + sizeof(sf_footer);
@@ -56,25 +56,25 @@ void *sf_malloc(size_t size_ip) {
     if (padding_reqd)
         fin_size =  size_hf + ( alignment - (size_hf % alignment) );
 
-    printf("\nFinal size of reqd. block : %d", (int)fin_size);
+    //%%pintf("\nFinal size of reqd. block : %d", (int)fin_size);
     TRY_AGAIN:
     // Now check if we have free blocks in any of the free lists
     for (int currListIdx = 0 ; currListIdx < FREE_LIST_COUNT; currListIdx++) {
-        printf("\nRunning Loop : %d", currListIdx);
-        printf("\nlist size limits : %d to %d", seg_free_list[currListIdx].min, seg_free_list[currListIdx].max);
+//        //%%pintf("\nRunning Loop : %d", currListIdx);
+//        //%%pintf("\nlist size limits : %d to %d", seg_free_list[currListIdx].min, seg_free_list[currListIdx].max);
         if(fin_size <= seg_free_list[currListIdx].max) {
-            printf("\nChecking for list %d", currListIdx);
+//            //%%pintf("\nChecking for list %d", currListIdx);
             sf_free_header *list_head_ptr = seg_free_list[currListIdx].head;
             if (list_head_ptr != NULL) {
-                printf("\nFound the correct non empty list index : %d", currListIdx);
-                printf("\nlist header is at : %p", list_head_ptr);
+//                //%%pintf("\nFound the correct non empty list index : %d", currListIdx);
+//                //%%pintf("\nlist header is at : %p", list_head_ptr);
 
                 sf_free_header *current_block = seg_free_list[currListIdx].head;
                 while (current_block != NULL) {
                     size_t actual_blocksize = current_block->header.block_size <<4;
                     if (actual_blocksize >= fin_size) {
 
-                        printf("\nBefore Splinting sizes : %d, %d, %d", (int) actual_blocksize, (int) fin_size, (int) (actual_blocksize - fin_size));
+                        //%%pintf("\nBefore Splinting sizes : %d, %d, %d", (int) actual_blocksize, (int) fin_size, (int) (actual_blocksize - fin_size));
 
                         size_t left_size = actual_blocksize - fin_size;
                         int can_create_new_split = left_size >= 4 * sizeof(sf_header);
@@ -82,11 +82,11 @@ void *sf_malloc(size_t size_ip) {
                         if (!can_create_new_split) {
                             // Go full on, if splinter is created.
                             fin_size = actual_blocksize;
-                            printf("\n Splinter will be created, hence allocating full size = %d", (int)fin_size);
+//                            //%%pintf("\n Splinter will be created, hence allocating full size = %d", (int)fin_size);
                         }
 
                         // Doesn't matter to create. If we'll use it we'll use it.
-                        sf_free_header *new_free_block = current_block + fin_size;
+                        sf_free_header *new_free_block = (void*) current_block + fin_size;
                         sf_free_header *current_block_next = current_block->next;
                         sf_free_header *current_block_prev = current_block->prev;
 
@@ -104,24 +104,24 @@ void *sf_malloc(size_t size_ip) {
                         output_ptr_footer->padded = (uint64_t) padding_reqd;
                         output_ptr_footer->requested_size = size_ip;
 
-                        printf("\nAllocated pointer is at : %p", output_ptr_header);
+                        //%%pintf("\nAllocated pointer is at : %p", output_ptr_header);
                         void *returning_payload = output_ptr_header + sizeof(sf_header);
-                        printf("\nAllocated payload is at : %p", returning_payload);
+                        //%%pintf("\nAllocated payload is at : %p", returning_payload);
                         /* *
                          * Payload is created. Nothing to do here now.
                          * */
 
                         if (can_create_new_split) {
-                            printf("\nBeginning to Create a new block");
+                            //%%pintf("\nBeginning to Create a new block");
                             /* *
                              * Create a new block after slicing the older, only if no splinters
                              * */
 
-                            new_free_block->header.block_size = left_size >> 4;
-                            printf("\nNew free block is created at : %p", new_free_block);
+                            new_free_block->header.block_size = (left_size >> 4);
+                            //%%pintf("\nNew free block is created at : %p", new_free_block);
                             int newListindex = getListIndexFromSize(left_size);
-                            printf("\nNew free block size : %lu", left_size);
-                            printf("\nNew free block's list index : %d", newListindex);
+                            //%%pintf("\nNew free block size : %lu", left_size);
+                            //%%pintf("\nNew free block's list index : %d", newListindex);
 
                             new_free_block->prev = current_block_prev;
                             new_free_block->next = current_block_next;
@@ -130,18 +130,15 @@ void *sf_malloc(size_t size_ip) {
                                 seg_free_list[newListindex].head->prev = new_free_block;
                             seg_free_list[newListindex].head = new_free_block;
 
-                            printf("\nNew list head is now pointing at : %p", new_free_block);
+                            //%%pintf("\nNew list head is now pointing at : %p", new_free_block);
 
                             sf_footer* new_footer =  (void*) new_free_block - sizeof(sf_header) + left_size;
-                            new_footer->block_size = left_size >> 4;
+                            new_footer->block_size = new_free_block->header.block_size;
+                            new_footer->allocated = 0;
+                            new_footer->padded = 0;
+                            new_footer->requested_size = 0;
 //                        sf_blockprint(new_free_block);
                         } else {
-
-                            if (seg_free_list[currListIdx].head == current_block) {
-                                seg_free_list[currListIdx].head = current_block->next;
-                                printf("\nUpdated free list's header");
-//                            sf_snapshot();
-                            }
 
                             if (current_block_next !=NULL) {
                                 current_block_next->prev = current_block_prev;
@@ -151,27 +148,30 @@ void *sf_malloc(size_t size_ip) {
                                 current_block_prev->next = current_block_next;
                             }
                         }
-
-
+                        if (seg_free_list[currListIdx].head == current_block) {
+                            seg_free_list[currListIdx].head = current_block->next;
+                            //%%pintf("\nUpdated free list's header");
+//                            sf_snapshot();
+                        }
 
                         /* *
                          * return output pointer
                          * */
                         return returning_payload;
                     }
-                    printf("\n%p Not appropriate",current_block);
-                    printf("\nMoving to the next free block on the list");
+                    //%%pintf("\n%p Not appropriate",current_block);
+                    //%%pintf("\nMoving to the next free block on the list");
                     current_block = current_block->next;
                 }
             } else {
-                printf("\nGot an empty list");
+//                //%%pintf("\nGot an empty list");
             }
         } else {
-            printf("\nCould not satisfy size rule, list : %d", currListIdx);
+//            //%%pintf("\nCould not satisfy size rule, list : %d", currListIdx);
         }
-        printf("\nLoop over for %d", currListIdx);
+//        //%%pintf("\nLoop over for %d", currListIdx);
     }
-    printf("\nAll lists are empty. Extracting new Block");
+    //%%pintf("\nAll lists are empty. Extracting new Block");
     int f = extend_heap();
     if (f)
         goto TRY_AGAIN;
@@ -188,7 +188,7 @@ void *sf_realloc(void *ptr, size_t size) {
 
 void check_valid_ptr_for_free(void* ptr){
     if (ptr == NULL) {
-        printf("\nabort due to NULL");
+        //%%pintf("\nabort due to NULL");
         abort();
     }
     sf_header* head = (sf_header*) ptr  - sizeof(sf_header);
@@ -196,45 +196,75 @@ void check_valid_ptr_for_free(void* ptr){
     sf_footer* footer = (void*) head - sizeof(sf_header) + real_block_size;
 
     if (((void*)head < get_heap_start())/* || ((void*)head > get_heap_end())*/) {
-        printf("\n%p, %p, %p", get_heap_start(), head, get_heap_end());
-        printf("\nabort due to heap limits");
+        //%%pintf("\n%p, %p, %p", get_heap_start(), head, get_heap_end());
+        //%%pintf("\nabort due to heap limits");
         abort();
     }
 
     if (head->allocated == 0 || footer->allocated == 0) {
-        printf("\nabort due to allocated bits");
+        //%%pintf("\nabort due to allocated bits");
         abort();
     }
 
     if ((head->padded != footer->padded)
         || (head->block_size!=footer->block_size)) {
-        printf("\nabort due to padded and blocksize");
+        //%%pintf("\nabort due to padded and blocksize");
         abort();
     }
 
     int test_padded = footer->requested_size + 16 != real_block_size;
 
     if ((head->padded != test_padded) || (footer->padded != test_padded)) {
-        printf("\nabort due to padded not correct");
+        //%%pintf("\nabort due to padded not correct");
         abort();
     }
+}
+
+size_t perform_coalescion(void *new_free_block, size_t size_of_block) {
+    sf_free_header* next_block = (void*) new_free_block + size_of_block;
+    //%%pintf("\nNext free block is located at : %p", next_block);
+    if(next_block->header.allocated == 0) {
+        //%%pintf("\nNext Block is free!");
+        size_of_block = size_of_block + (next_block->header.block_size<<4);
+
+        for (int i=0;i<FREE_LIST_COUNT;i++) {
+            if (seg_free_list[i].head == next_block) {
+                //%%pintf("\nNext block seg list vals for I=%d: %p, %p, %p",i, seg_free_list[i].head->prev, seg_free_list[i].head,seg_free_list[i].head->next);
+                //%%pintf("\nNext block seg list vals for I=%d: %p, %p, %p",i+1, seg_free_list[i+1].head->prev, seg_free_list[i+1].head,seg_free_list[i+1].head->next);
+                seg_free_list[i].head = seg_free_list[i].head->next;
+                //%%pintf("\nNext block vals : %p", seg_free_list[i].head);//, seg_free_list[i].head->prev, seg_free_list[i].head->next);
+            }
+        }
+
+        if(next_block->prev!=NULL)
+            next_block->prev->next = next_block->next;
+
+        if (next_block->next!=NULL)
+            next_block->next->prev = next_block->prev;
+    }
+    return size_of_block;
 }
 
 void sf_free(void* ptr) {
     check_valid_ptr_for_free(ptr);
     fflush(stdout);
-    printf("\n--------------------------------New Freeing motion--------------------------");
-    printf("\nPayload to be freed is at : %p", ptr);
+    //%%pintf("\n--------------------------------New Freeing motion--------------------------");
+    //%%pintf("\nPayload to be freed is at : %p", ptr);
     sf_header* free_block = (sf_header*)ptr - sizeof(sf_header);
-    printf("\nHeader of the freed payload is at : %p", free_block);
-
-    size_t size_of_block = ((free_block->block_size)<<4);
-    printf("\nSize of the block to be freed : %d", (int)size_of_block);
-
-    int listIndex = getListIndexFromSize(size_of_block);
-    printf("\nGot appropriate list index = %d", listIndex);
+    //%%pintf("\nHeader of the freed payload is at : %p", free_block);
 
     sf_free_header* new_free_block = (sf_free_header*) free_block;
+
+    size_t size_of_block = ((free_block->block_size)<<4);
+    //%%pintf("\nSize of the block to be freed : %d", (int)size_of_block);
+
+    size_of_block = perform_coalescion(new_free_block, size_of_block);
+    //%%pintf("\nPerformed coalescion, new size  :%d", size_of_block);
+
+    int listIndex = getListIndexFromSize(size_of_block);
+    //%%pintf("\nGot appropriate list index = %d", listIndex);
+
+
     new_free_block->next = seg_free_list[listIndex].head;
     new_free_block->prev = NULL;
     new_free_block->header.block_size = size_of_block>>4;
@@ -251,50 +281,14 @@ void sf_free(void* ptr) {
         seg_free_list[listIndex].head->prev = new_free_block;
     seg_free_list[listIndex].head = new_free_block;
 
-    printf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
+    //%%pintf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
 //    sf_blockprint(seg_free_list[listIndex].head);
 
 }
 
-void mm_init() {
-//    fflush(stdout);
-    printf("\nmm_initing");
-
-    sf_sbrk();
-
-    void* heap_start = get_heap_start();
-    void* heap_end = get_heap_end();
-    size_t sizeOfFirstBlock =  heap_end - heap_start;
-
-//    printf("\nGot %d size block ", (int)sizeOfFirstBlock);
-
-    int listIdx = getListIndexFromSize(sizeOfFirstBlock);
-
-//    printf("\nGot list index as : %d", listIdx);
-
-    seg_free_list[listIdx].head = (sf_free_header*) heap_start;
-    seg_free_list[listIdx].head->prev = NULL;
-    seg_free_list[listIdx].head->next = NULL;
-    seg_free_list[listIdx].head->header.block_size = sizeOfFirstBlock >> 4;
-    seg_free_list[listIdx].head->header.allocated = 0;
-
-//    sf_blockprint(seg_free_list[listIdx].head);
-
-    sf_footer* footer = heap_start - sizeof(sf_header) + sizeOfFirstBlock;
-    footer->block_size = sizeOfFirstBlock>>4;
-    footer->allocated = 0;
-    footer->requested_size = 0;
-
-//    sf_blockprint(footer);
-
-    printf("\nPut initial block at : %p", seg_free_list[listIdx].head);
-    printf("\nInitial block footer is at : %p", footer);
-    printf("\nSize : %d, %d", (int) (footer - (sf_footer*)heap_start), (int) sizeOfFirstBlock);
-}
-
 
 int extend_heap() {
-    printf("\nInside Extend Heap");
+    //%%pintf("\nInside Extend Heap");
     void* old_heap_end = get_heap_end();
     if (old_heap_end == NULL) {
         sf_sbrk();
@@ -303,7 +297,7 @@ int extend_heap() {
         void* sbrk_ret = sf_sbrk();
         fflush(stdout);
         if (sbrk_ret == (void *) -1) {
-            printf("\nSBRK returned -1. Abort!");
+            //%%pintf("\nSBRK returned -1. Abort!");
             return 0;
         }
     }
@@ -327,10 +321,10 @@ int extend_heap() {
         footer->requested_size = 0;
 
         seg_free_list[listIndex].head = new_block_header;
-        printf("\n New block Init at : %p", new_block_header);
-        printf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
+        //%%pintf("\n New block Init at : %p", new_block_header);
+        //%%pintf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
 
-        printf("\nFinal Memory location is : %p", get_heap_end());
+        //%%pintf("\nFinal Memory location is : %p", get_heap_end());
         return 1;
     }
 
@@ -347,26 +341,26 @@ int getListIndexFromSize(size_t sz) {
 }
 
 void print_heap_overview() {
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
 }
 
 void print_free_list(){
-    printf("\n\n\n");
+    //%%pintf("\n\n\n");
     for(int i=0;i<4;i++){
-        printf("\nList no. %d :", i);
+        //%%pintf("\nList no. %d :", i);
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
-            printf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
+            //%%pintf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
             block = block->next;
         }
     }
