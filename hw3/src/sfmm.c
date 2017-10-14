@@ -39,12 +39,12 @@ void *sf_malloc(size_t size_ip) {
      * 3. search in all the lists for appropriate block availability. if still not available, return null and    ENOMEM
      */
     fflush(stdout);
-    //%%("\n--------------------------------New Allocation----------------------------");
+    printf("\n--------------------------------New Allocation----------------------------");
     if (size_ip > 4*PAGE_SZ || size_ip == 0) {
         sf_errno = EINVAL;
         return NULL;
     } else {
-        //%%("\nRequest is of a valid size.");
+        printf("\nRequest is of a valid size.");
     }
 
     size_t size_hf = size_ip + sizeof(sf_header) + sizeof(sf_footer);
@@ -54,32 +54,32 @@ void *sf_malloc(size_t size_ip) {
     if (padding_reqd)
         fin_size =  size_hf + ( alignment - (size_hf % alignment) );
 
-    //%%("\nFinal size of reqd. block : %d", (int)fin_size);
+    printf("\nFinal size of reqd. block : %d", (int)fin_size);
 
     // Now check if we have free blocks in any of the free lists
     for (int currListIdx = 0 ; currListIdx < FREE_LIST_COUNT; currListIdx++) {
-        //%%("\nlist size limits : %d to %d", seg_free_list[currListIdx].min, seg_free_list[currListIdx].max);
+        printf("\nlist size limits : %d to %d", seg_free_list[currListIdx].min, seg_free_list[currListIdx].max);
         if(fin_size <= seg_free_list[currListIdx].max) {
-            //%%("\nChecking for list %d", currListIdx);
+            printf("\nChecking for list %d", currListIdx);
             sf_free_header *list_head_ptr = seg_free_list[currListIdx].head;
             if (list_head_ptr != NULL) {
-                //%%("\nFound the correct non empty list index : %d", currListIdx);
-                //%%("\nlist header is at : %p", list_head_ptr);
+                printf("\nFound the correct non empty list index : %d", currListIdx);
+                printf("\nlist header is at : %p", list_head_ptr);
 
                 sf_free_header *current_block = seg_free_list[currListIdx].head;
                 while (current_block != NULL) {
                     size_t actual_blocksize = current_block->header.block_size <<4;
                     if (actual_blocksize >= fin_size) {
 
-                        //%%("\nBefore Splinting sizes : %d, %d, %d", (int) actual_blocksize, (int) fin_size, (int) (actual_blocksize - fin_size));
+                        printf("\nBefore Splinting sizes : %d, %d, %d", (int) actual_blocksize, (int) fin_size, (int) (actual_blocksize - fin_size));
 
                         size_t left_size = actual_blocksize - fin_size;
-                        int is_splinter_created = left_size < 4 * sizeof(sf_header);
+                        int can_create_new_split = left_size >= 4 * sizeof(sf_header);
 
-                        if (is_splinter_created) {
+                        if (!can_create_new_split) {
                             // Go full on, if splinter is created.
                             fin_size = actual_blocksize;
-                            //%%("\n Splinter will be created, hence size = %d", (int)fin_size);
+                            printf("\n Splinter will be created, hence allocating full size = %d", (int)fin_size);
                         }
 
                         // Doesn't matter to create. If we'll use it we'll use it.
@@ -102,41 +102,44 @@ void *sf_malloc(size_t size_ip) {
                         output_ptr_footer->requested_size = size_ip;
 
 
-                        //%%("\nAllocated pointer is at : %p", output_ptr_header);
+                        printf("\nAllocated pointer is at : %p", output_ptr_header);
                         void *returning_payload = output_ptr_header + sizeof(sf_header);
-                        //%%("\nAllocated payload is at : %p", returning_payload);
+                        printf("\nAllocated payload is at : %p", returning_payload);
                         /* *
                          * Payload is created. Nothing to do here now.
                          * */
 
-                        if (!is_splinter_created) {
-                            //%%("\nBeginning to Create a new block");
+                        if (can_create_new_split) {
+                            printf("\nBeginning to Create a new block");
                             /* *
                              * Create a new block after slicing the older, only if no splinters
                              * */
 
                             new_free_block->header.block_size = left_size >> 4;
-                            //%%("\nNew free block is created at : %p", new_free_block);
+                            printf("\nNew free block is created at : %p", new_free_block);
                             int newListindex = getListIndexFromSize(left_size);
-                            //%%("\nNew free block size : %lu", left_size);
-                            //%%("\nNew free block's list index : %d", newListindex);
+                            printf("\nNew free block size : %lu", left_size);
+                            printf("\nNew free block's list index : %d", newListindex);
 
                             new_free_block->prev = current_block_prev;
                             new_free_block->next = current_block_next;
 
                             if (seg_free_list[newListindex].head != NULL)
-                                seg_free_list[newListindex].head->next = new_free_block;
+                                seg_free_list[newListindex].head->prev = new_free_block;
                             seg_free_list[newListindex].head = new_free_block;
 
-                            //%%("\nNew list head is now pointing at : %p", new_free_block);
+                            printf("\nNew list head is now pointing at : %p", new_free_block);
 
                             sf_footer* new_footer =  (void*) new_free_block + left_size - sizeof(sf_header);
                             new_footer->block_size = left_size >> 4;
 //                        sf_blockprint(new_free_block);
+                        } else {
+                            current_block_next->prev = current_block_prev;
+                            current_block_prev->next = current_block_next;
                         }
                         if (seg_free_list[currListIdx].head == current_block) {
                             seg_free_list[currListIdx].head = current_block->prev;
-                            //%%("\nUpdated free list's header");
+                            printf("\nUpdated free list's header");
 //                            sf_snapshot();
                         }
 
@@ -146,14 +149,15 @@ void *sf_malloc(size_t size_ip) {
                          * */
                         return returning_payload;
                     }
-                    current_block = current_block->prev;
-                    //%%("\nMoving to the next free block on the list");
+                    printf("\n%p Not appropriate",current_block);
+                    printf("\nMoving to the next free block on the list");
+                    current_block = current_block->next;
                 }
             } else {
-                //%%("\nGot an empty list : %d", currListIdx);
+                printf("\nGot an empty list : %d", currListIdx);
             }
         } else {
-            //%%("\nCould not satisfy size rule, list : %d", currListIdx);
+            printf("\nCould not satisfy size rule, list : %d", currListIdx);
         }
     }
     return NULL;
@@ -166,20 +170,20 @@ void *sf_realloc(void *ptr, size_t size) {
 
 void sf_free(void* ptr) {
     fflush(stdout);
-    //%%("\n--------------------------------New Freeing motion--------------------------");
-    //%%("\nPayload to be freed is at : %p", ptr);
+    printf("\n--------------------------------New Freeing motion--------------------------");
+    printf("\nPayload to be freed is at : %p", ptr);
     sf_header* free_block = (sf_header*)ptr - sizeof(sf_header);
-    //%%("\nHeader of the freed payload is at : %p", free_block);
+    printf("\nHeader of the freed payload is at : %p", free_block);
 
     size_t size_of_block = ((free_block->block_size)<<4);
-    //%%("\nSize of the block to be freed : %d", (int)size_of_block);
+    printf("\nSize of the block to be freed : %d", (int)size_of_block);
 
     int listIndex = getListIndexFromSize(size_of_block);
-    //%%("\nGot appropriate list index = %d", listIndex);
+    printf("\nGot appropriate list index = %d", listIndex);
 
     sf_free_header* new_free_block = (sf_free_header*) free_block;
-    new_free_block->prev = seg_free_list[listIndex].head;
-    new_free_block->next = NULL;
+    new_free_block->next = seg_free_list[listIndex].head;
+    new_free_block->prev = NULL;
     new_free_block->header.block_size = size_of_block>>4;
     new_free_block->header.allocated = 0;
     new_free_block->header.padded = 0;
@@ -191,17 +195,17 @@ void sf_free(void* ptr) {
     new_footer->requested_size = 0;
 
     if (seg_free_list[listIndex].head != NULL)
-        seg_free_list[listIndex].head->next = new_free_block;
+        seg_free_list[listIndex].head->prev = new_free_block;
     seg_free_list[listIndex].head = new_free_block;
 
-    //%%("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
+    printf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
 //    sf_blockprint(seg_free_list[listIndex].head);
 
 }
 
 void mm_init() {
 //    fflush(stdout);
-    //%%("\nmm_initing");
+    printf("\nmm_initing");
 
     sf_sbrk();
 
@@ -209,11 +213,11 @@ void mm_init() {
     void* heap_end = get_heap_end();
     size_t sizeOfFirstBlock =  heap_end - heap_start;
 
-//    //%%("\nGot %d size block ", (int)sizeOfFirstBlock);
+//    printf("\nGot %d size block ", (int)sizeOfFirstBlock);
 
     int listIdx = getListIndexFromSize(sizeOfFirstBlock);
 
-//    //%%("\nGot list index as : %d", listIdx);
+//    printf("\nGot list index as : %d", listIdx);
 
     seg_free_list[listIdx].head = (sf_free_header*) heap_start;
     seg_free_list[listIdx].head->prev = NULL;
@@ -229,9 +233,9 @@ void mm_init() {
 
 //    sf_blockprint(footer);
 
-    //%%("\nPut initial block at : %p", seg_free_list[listIdx].head);
-    //%%("\nInitial block footer is at : %p", footer);
-    //%%("\nSize : %d, %d", (int) (footer - (sf_footer*)heap_start), (int) sizeOfFirstBlock);
+    printf("\nPut initial block at : %p", seg_free_list[listIdx].head);
+    printf("\nInitial block footer is at : %p", footer);
+    printf("\nSize : %d, %d", (int) (footer - (sf_footer*)heap_start), (int) sizeOfFirstBlock);
 }
 
 int getListIndexFromSize(size_t sz) {
@@ -245,16 +249,17 @@ int getListIndexFromSize(size_t sz) {
 }
 
 void print_heap_overview() {
-    //%%("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
 }
 
 void print_free_list(){
+    printf("\n\n\n");
     for(int i=0;i<4;i++){
         printf("\nList no. %d :", i);
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
             printf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
-            block = block->prev;
+            block = block->next;
         }
     }
 }
