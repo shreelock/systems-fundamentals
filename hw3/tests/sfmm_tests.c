@@ -1,7 +1,7 @@
 #include <criterion/criterion.h>
 #include <errno.h>
 #include <signal.h>
-#include "sfmm.h"
+#include "../include/sfmm.h"
 
 
 int find_list_index_from_size(int sz) {
@@ -24,7 +24,7 @@ Test(sf_memsuite_student, Malloc_an_Integer_check_freelist, .init = sf_mem_init,
 	sf_header *header = (sf_header*)((char*)x - 8);
 
 	/* There should be one block of size 4064 in list 3 */
-	free_list *fl = &seg_free_list[find_list_index_from_size(PAGE_SZ - (header->block_size << 4))];
+	free_list *fl = &seg_free_list[find_list_index_from_size((int) (PAGE_SZ - (header->block_size << 4)))];
 
 	cr_assert_not_null(fl, "Free list is null");
 
@@ -105,7 +105,8 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	sf_free(y);
 
 	// First block in each list should be the most recently freed block
-	for (int i = 0; i < FREE_LIST_COUNT; i++) {
+    int i;
+	for (i = 0; i < FREE_LIST_COUNT; i++) {
 		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
 		cr_assert_not_null(fh, "list %d is NULL!", i);
 		cr_assert(fh->header.block_size << 4 == allocated_block_size[i], "Unexpected free block size!");
@@ -113,7 +114,7 @@ Test(sf_memsuite_student, freelist, .init = sf_mem_init, .fini = sf_mem_fini) {
 	}
 
 	// There should be one free block in each list, 2 blocks in list 3 of size 544 and 1232
-	for (int i = 0; i < FREE_LIST_COUNT; i++) {
+	for (i = 0; i < FREE_LIST_COUNT; i++) {
 		sf_free_header *fh = (sf_free_header *)(seg_free_list[i].head);
 		if (i != 2)
 		    cr_assert_null(fh->next, "More than 1 block in freelist [%d]!", i);
@@ -185,3 +186,67 @@ Test(sf_memsuite_student, realloc_smaller_block_free_block, .init = sf_mem_init,
 //DO NOT DELETE THESE COMMENTS
 //############################################
 
+Test(sf_memsuite_student, coalesce, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int *f1 = sf_malloc(10);*f1 = 0;
+    int *f2 = sf_malloc(1000);*f2 = 0;
+    int *f3 = sf_malloc(10);*f3 = 0;
+    int *f4 = sf_malloc(10);*f4 = 0;
+    int *f5 = sf_malloc(10);*f5 = 0;
+    sf_free(f5);
+    sf_free(f4);
+    sf_free(f3);
+    sf_free(f2);
+    sf_free(f1);
+
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            cr_assert(fh->header.block_size << 4 == 4096, "Coalescing not done right!");
+    }
+}
+
+
+Test(sf_memsuite_student, heap_extension, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int* g0 = sf_malloc(4060);*g0 = 9;
+    int* g1 = sf_malloc(4060);*g1 = 9;
+    int* g2 = sf_malloc(4060);*g2 = 9;
+    int* g3 = sf_malloc(4060);*g3 = 9;
+
+    cr_assert_null(sf_malloc(4060), "Heap total size limit not being honored");
+}
+
+
+Test(sf_memsuite_student, colaesce_two, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int* g0 = sf_malloc(10);*g0 = 9;
+    int* g1 = sf_malloc(10);*g1 = 9;
+
+    sf_free(g0);
+    sf_free(g1);
+
+    int i,count=0;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            count++;
+    }
+    cr_assert(count==2, "Coalescing not done right. we should have two lists");
+}
+
+
+Test(sf_memsuite_student, value_check, .init = sf_mem_init, .fini = sf_mem_fini) {
+    double* ptr = sf_malloc(5);*ptr = 9;
+    cr_assert_not_null(ptr, "allocation wrong");
+    cr_assert(*ptr==9, "value being set wrong");
+}
+
+
+Test(sf_memsuite_student, single_page_size, .init = sf_mem_init, .fini = sf_mem_fini) {
+    sf_free(sf_malloc(5));
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            cr_assert(seg_free_list[i].head->header.block_size<<4 == PAGE_SZ, "Size of first block is not correct");
+    }
+}

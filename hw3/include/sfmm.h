@@ -213,4 +213,9 @@ void sf_blockprint(void* block);
  */
 void sf_varprint(void *data);
 
+void mm_init();
+
+void print_heap_overview();
+
+void print_free_list();
 #endif
