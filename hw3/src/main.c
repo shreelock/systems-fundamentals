@@ -15,6 +15,8 @@ void test2();
 
 void newtest();
 
+void sbrk_back_coalesce_check();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
 
@@ -28,8 +30,24 @@ int main(int argc, char const *argv[]) {
 //    sf_snapshot();
 //    test2();
 //    newtest();
+    sbrk_back_coalesce_check();
     sf_mem_fini();
     return EXIT_SUCCESS;
+}
+void sbrk_back_coalesce_check(){
+//    int* f = sf_malloc(120);*f=0;
+    double* big_block = sf_malloc(PAGE_SZ*3);
+    *big_block=9;
+    print_free_list();
+    sf_free(big_block);
+    print_free_list();
+
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            printf("%d,%d",seg_free_list[i].head->header.block_size<<4, 3*PAGE_SZ);
+    }
 }
 
 void newtest(){

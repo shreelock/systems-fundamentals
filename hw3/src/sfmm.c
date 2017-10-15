@@ -42,7 +42,9 @@ void *sf_malloc(size_t size_ip) {
      */
     fflush(stdout);
     //%%pintf("\n--------------------------------New Allocation----------------------------");
+    //%%pintf("\nGot request size as : %d", (int) size_ip);
     if (size_ip > 4*PAGE_SZ || size_ip == 0) {
+//        //%%pintf("\nSize limits exceeded");
         sf_errno = EINVAL;
         return NULL;
     } else {
@@ -55,6 +57,11 @@ void *sf_malloc(size_t size_ip) {
     size_t  fin_size = size_hf;
     if (padding_reqd)
         fin_size =  size_hf + ( alignment - (size_hf % alignment) );
+
+    if(fin_size > 4*PAGE_SZ) {
+        sf_errno = ENOMEM;
+        return NULL;
+    }
 
     //%%pintf("\nFinal size of reqd. block : %d", (int)fin_size);
     TRY_AGAIN:
@@ -303,9 +310,39 @@ int extend_heap() {
     void* new_heap_end = get_heap_end();
     size_t sizeOfNewBlock = new_heap_end - old_heap_end;
     if (sizeOfNewBlock != 0) {
+        sf_free_header *new_block_header = (sf_free_header *) old_heap_end;
+        sf_footer* prev_block_footer = (void*) old_heap_end - sizeof(sf_footer);
+
+        if((void*)prev_block_footer > get_heap_start() && prev_block_footer->allocated == 0) {
+            //%%pintf("\nYay! prev block is empty.");
+            size_t prev_block_size = prev_block_footer->block_size<<4;
+            //%%pintf("\nGot the blocks size as : %d", (int) prev_block_size);
+            sf_free_header* prev_block_header = (void*) prev_block_footer - prev_block_size + sizeof(sf_footer);
+
+            sizeOfNewBlock += prev_block_size;
+
+            for (int i=0;i<FREE_LIST_COUNT;i++) {
+//                //%%pintf("\nHeaders : %p, %p", seg_free_list[i].head, prev_block_header);
+                if (seg_free_list[i].head == prev_block_header) {
+                    //%%pintf("\nFound this free list head : %d", i);
+                    seg_free_list[i].head = seg_free_list[i].head->next;
+                }
+            }
+
+            if(prev_block_header->prev!=NULL)
+                prev_block_header->prev->next = prev_block_header->next;
+
+            if(prev_block_header->next!=NULL)
+                prev_block_header->next->prev = prev_block_header->prev;
+
+            new_block_header = prev_block_header;
+
+        } else {
+            //%%pintf("\nNot empty, or beyond limit, proceeding normally");
+        }
+
         int listIndex = getListIndexFromSize(sizeOfNewBlock);
 
-        sf_free_header *new_block_header = (sf_free_header *) old_heap_end;
         new_block_header->next = seg_free_list[listIndex].head;
         new_block_header->prev = NULL;
         new_block_header->header.allocated = 0;
@@ -328,6 +365,7 @@ int extend_heap() {
 
     return 0;
 }
+
 int getListIndexFromSize(size_t sz) {
     int listno = 0;
     if (sz >= LIST_1_MIN && sz <=LIST_1_MAX) listno = 0;
@@ -359,6 +397,7 @@ void print_free_list(){
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
             //%%pintf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
+            //%%pintf("\nFooter is at : %p", (void*)block + (block->header.block_size<<4) - sizeof(sf_header));
             block = block->next;
         }
     }
