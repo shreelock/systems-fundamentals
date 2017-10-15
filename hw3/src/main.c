@@ -11,42 +11,40 @@ void check_free_errors();
 
 void check_coal();
 
+void test2();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
 
-    check_coal();
+//    check_coal();
 //    print_heap_overview();
-//    test_mid_of_list();
+    test_mid_of_list();
+//    check_no_splinter_creation();
 //    check_no_splinter_creation();
 //    check_heap_extension();
 //    check_free_errors();
 //    sf_snapshot();
+//    test2();
     return EXIT_SUCCESS;
 }
 
 void check_coal(){
-    int* f2 = sf_malloc(2000);*f2=0;
-    sf_snapshot();
-    print_free_list();
     int* f1 = sf_malloc(10);*f1=0;
-
-//    int* f3 = sf_malloc(10);
-//    int* f4 = sf_malloc(10);
+    int* f2 = sf_malloc(1000);*f2=0;
+    int* f3 = sf_malloc(10);*f3=0;
+    int* f4 = sf_malloc(10);*f4=0;
+    int* f5 = sf_malloc(10);*f5=0;
     sf_snapshot();
-//    print_free_list();
-//    print_free_list();
-//    sf_free(f3);
-//    sf_snapshot();
-//    print_free_list();
+    sf_free(f5);
+    sf_snapshot();
+    sf_free(f4);
+    sf_snapshot();
+    sf_free(f3);
+    sf_snapshot();
     sf_free(f2);
     sf_snapshot();
-//    print_free_list();
-//    sf_free(f2);
-//    sf_snapshot();
-//    print_free_list();
     sf_free(f1);
     sf_snapshot();
-//    print_free_list();
 }
 
 void check_free_errors(){
@@ -74,25 +72,25 @@ void check_heap_extension() {
 
 void check_no_splinter_creation(){
     double *ptr = sf_malloc(10);
-    print_free_list();
+    sf_snapshot();
     *ptr = 100;
 
     double *ptr1 = sf_malloc(10);
     *ptr1 = 100;
-    print_free_list();
+    sf_snapshot();
 
     sf_free(ptr);
-    print_free_list();
+    sf_snapshot();
 
     sf_free(ptr1);
-    print_free_list();
+    sf_snapshot();
 
     double *ptr2 = sf_malloc(4);
     *ptr2 = 100;
-    print_free_list();
+    sf_snapshot();
 
     sf_free(ptr2);
-    print_free_list();
+    sf_snapshot();
 }
 
 void test_mid_of_list(){
