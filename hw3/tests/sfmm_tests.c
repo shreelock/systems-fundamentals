@@ -250,3 +250,13 @@ Test(sf_memsuite_student, single_page_size, .init = sf_mem_init, .fini = sf_mem_
             cr_assert(seg_free_list[i].head->header.block_size<<4 == PAGE_SZ, "Size of first block is not correct");
     }
 }
+
+Test(sf_memsuite_student, sbrk_back_coalesce, .init = sf_mem_init, .fini = sf_mem_fini) {
+    sf_free(sf_malloc(3*PAGE_SZ));
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            cr_assert(seg_free_list[i].head->header.block_size<<4 == 4*PAGE_SZ, "sf_sbrk coaelscing not wrking");
+    }
+}
