@@ -6,9 +6,8 @@
 #include "../include/sfmm.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <asm/errno.h>
-#include <jmorecfg.h>
 #include <string.h>
+#include <errno.h>
 
 /**
  * You should store the heads of your free lists in these variables.
