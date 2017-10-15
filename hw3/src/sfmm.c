@@ -105,7 +105,7 @@ void *sf_malloc(size_t size_ip) {
                         output_ptr_footer->requested_size = size_ip;
 
                         //%%pintf("\nAllocated pointer is at : %p", output_ptr_header);
-                        void *returning_payload = output_ptr_header + sizeof(sf_header);
+                        void *returning_payload = (void*) output_ptr_header + sizeof(sf_header);
                         //%%pintf("\nAllocated payload is at : %p", returning_payload);
                         /* *
                          * Payload is created. Nothing to do here now.
@@ -191,7 +191,7 @@ void check_valid_ptr_for_free(void* ptr){
         //%%pintf("\nabort due to NULL");
         abort();
     }
-    sf_header* head = (sf_header*) ptr  - sizeof(sf_header);
+    sf_header* head = ptr  - sizeof(sf_header);
     size_t real_block_size = ((head->block_size)<<4);
     sf_footer* footer = (void*) head - sizeof(sf_header) + real_block_size;
 
@@ -248,20 +248,20 @@ size_t perform_coalescion(void *new_free_block, size_t size_of_block) {
 void sf_free(void* ptr) {
     check_valid_ptr_for_free(ptr);
     fflush(stdout);
-    printf("\n--------------------------------New Freeing motion--------------------------");
-    printf("\nPayload to be freed is at : %p", ptr);
-    sf_header* free_block = (sf_header*)ptr - sizeof(sf_header);
-    printf("\nHeader of the freed payload is at : %p", free_block);
+    //%%pintf("\n--------------------------------New Freeing motion--------------------------");
+    //%%pintf("\nPayload to be freed is at : %p", ptr);
+    sf_header* free_block = ptr - sizeof(sf_header);
+    //%%pintf("\nHeader of the freed payload is at : %p", free_block);
 
     sf_free_header* new_free_block = (sf_free_header*) free_block;
     size_t size_of_block = ((free_block->block_size)<<4);
 
     size_of_block = perform_coalescion(new_free_block, size_of_block);
 
-    printf("\nSize of the block to be freed : %d", (int)size_of_block);
+    //%%pintf("\nSize of the block to be freed : %d", (int)size_of_block);
 
     int listIndex = getListIndexFromSize(size_of_block);
-    printf("\nGot appropriate list index = %d", listIndex);
+    //%%pintf("\nGot appropriate list index = %d", listIndex);
 
     new_free_block->next = seg_free_list[listIndex].head;
     new_free_block->prev = NULL;
@@ -279,14 +279,14 @@ void sf_free(void* ptr) {
         seg_free_list[listIndex].head->prev = new_free_block;
     seg_free_list[listIndex].head = new_free_block;
 
-    printf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
+    //%%pintf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
 //    sf_blockprint(seg_free_list[listIndex].head);
 
 }
 
 
 int extend_heap() {
-    printf("\nInside Extend Heap");
+    //%%pintf("\nInside Extend Heap");
     void* old_heap_end = get_heap_end();
     if (old_heap_end == NULL) {
         sf_sbrk();
@@ -295,7 +295,7 @@ int extend_heap() {
         void* sbrk_ret = sf_sbrk();
         fflush(stdout);
         if (sbrk_ret == (void *) -1) {
-            printf("\nSBRK returned -1. Abort!");
+            //%%pintf("\nSBRK returned -1. Abort!");
             return 0;
         }
     }
@@ -319,10 +319,10 @@ int extend_heap() {
         footer->requested_size = 0;
 
         seg_free_list[listIndex].head = new_block_header;
-        printf("\n New block Init at : %p", new_block_header);
-        printf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
+        //%%pintf("\n New block Init at : %p", new_block_header);
+        //%%pintf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
 
-        printf("\nFinal Memory location is : %p", get_heap_end());
+        //%%pintf("\nFinal Memory location is : %p", get_heap_end());
         return 1;
     }
 
@@ -339,26 +339,26 @@ int getListIndexFromSize(size_t sz) {
 }
 
 void print_heap_overview() {
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
 }
 
 void print_free_list(){
-    printf("\n\n\n");
+    //%%pintf("\n\n\n");
     for(int i=0;i<4;i++){
-        printf("\nList no. %d :", i);
+        //%%pintf("\nList no. %d :", i);
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
-            printf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
+            //%%pintf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
             block = block->next;
         }
     }

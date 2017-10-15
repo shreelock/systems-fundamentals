@@ -65,8 +65,8 @@ void check_heap_extension() {
     *g2 = 9;
     int* g3 = sf_malloc(4060);
     *g3 = 9;
-    int* h = sf_malloc(4060);
-    *h = 0;
+//    int* h = sf_malloc(4060);
+//    *h = 0;
     printf("h");
 }
 
@@ -96,15 +96,20 @@ void check_no_splinter_creation(){
 void test_mid_of_list(){
 
     double* ptr = sf_malloc(10);
+    printf("\nallocated ptr : %p", ptr);
     double* ptr1 = sf_malloc(64);
+    printf("\nallocated ptr : %p", ptr1);
     double* ptr2 = sf_malloc(32);
+    printf("\nallocated ptr : %p", ptr2);
     double* ptr3 = sf_malloc(32);
+    printf("\nallocated ptr : %p", ptr3);
     double* ptr4 = sf_malloc(32);
+    printf("\nallocated ptr : %p", ptr4);
     *ptr = 199.82;
     *ptr1 = 320.00;
-    *ptr2 = 320.00;
-    *ptr3 = 320.00;
-    *ptr4 = 320.00;
+    *ptr2 = 321.00;
+    *ptr3 = 322.00;
+    *ptr4 = 323.00;
 
 
     sf_free(ptr);
