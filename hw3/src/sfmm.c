@@ -6,8 +6,8 @@
 #include "../include/sfmm.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <asm/errno.h>
-#include <jmorecfg.h>
+#include <string.h>
+#include <errno.h>
 
 /**
  * You should store the heads of your free lists in these variables.
@@ -27,6 +27,8 @@ int getListIndexFromSize(size_t sz) ;
 
 int extend_heap() ;
 
+void check_valid_ptr(void *ptr);
+
 /*
  * Initially, if all the free lists are empty, then we allocate from the mem sbrk,
  * set its header as allocated and return that. when we free it later on, then we
@@ -40,9 +42,11 @@ void *sf_malloc(size_t size_ip) {
      * 2. then calculate the approximate block size by adding header, footer, and necessary padding to find necessary block size
      * 3. search in all the lists for appropriate block availability. if still not available, return null and    ENOMEM
      */
-    fflush(stdout);
+//    fflush(stdout);
     //%%pintf("\n--------------------------------New Allocation----------------------------");
+    //%%pintf("\nGot request size as : %d", (int) size_ip);
     if (size_ip > 4*PAGE_SZ || size_ip == 0) {
+//        //%%pintf("\nSize limits exceeded");
         sf_errno = EINVAL;
         return NULL;
     } else {
@@ -55,6 +59,11 @@ void *sf_malloc(size_t size_ip) {
     size_t  fin_size = size_hf;
     if (padding_reqd)
         fin_size =  size_hf + ( alignment - (size_hf % alignment) );
+
+    if(fin_size > 4*PAGE_SZ) {
+        sf_errno = ENOMEM;
+        return NULL;
+    }
 
     //%%pintf("\nFinal size of reqd. block : %d", (int)fin_size);
     TRY_AGAIN:
@@ -183,10 +192,100 @@ void *sf_malloc(size_t size_ip) {
 
 
 void *sf_realloc(void *ptr, size_t size) {
+    if(size == 0){
+        sf_free(ptr);
+        return NULL;
+    }
+    check_valid_ptr(ptr);
+    sf_header* input_block_header = ptr - sizeof(sf_header);
+    size_t orig_block_size = (input_block_header->block_size<<4);
+
+    sf_footer* input_block_footer = (void*) input_block_header - sizeof(sf_header) + orig_block_size;
+    size_t orig_request_size = input_block_footer->requested_size;
+
+    size_t size_hf = size + sizeof(sf_header) + sizeof(sf_footer);
+    uint64_t padding_reqd = (int) size_hf % alignment > 0;
+    size_t  req_block_size = size_hf;
+    if (padding_reqd)
+        req_block_size =  size_hf + ( alignment - (size_hf % alignment) );
+
+    if(req_block_size == orig_block_size){
+        if(size == orig_request_size) {
+            //%%pintf("\nSame pointr, returning.");
+            return ptr;
+        } else {
+            //%%pintf("\nSame block size, updating requested_size and returning");
+            input_block_footer->requested_size = size;
+            input_block_footer->block_size = input_block_header->block_size;
+            input_block_footer->padded = padding_reqd;
+            input_block_header->padded = padding_reqd;
+            return ptr;
+        }
+    }
+
+    if(req_block_size > orig_block_size){
+        //%%pintf("\nNew size is more than original size, \nallocating new position");
+        void* newptr = sf_malloc(size);
+        memcpy(newptr, ptr, orig_request_size);
+        sf_free(ptr);
+        return newptr;
+    }
+
+    if(req_block_size < orig_block_size){
+        size_t splinter_size = orig_block_size - req_block_size;
+        if (splinter_size >= 4*sizeof(sf_header)) {
+            //%%pintf("\nNew size is less than original size, \nallocating new position \ncreating splinter");
+            sf_footer *new_block_footer = (void *) input_block_header - sizeof(sf_header) + req_block_size;
+
+            input_block_header->block_size = (req_block_size>>4);
+            input_block_header->padded = padding_reqd;
+            input_block_header->allocated = 1;
+
+            //%%pintf("\nIBH:%p", input_block_header);
+
+            new_block_footer->block_size = input_block_header->block_size;
+            new_block_footer->padded = input_block_header->padded;
+            new_block_footer->allocated = input_block_header->allocated;
+            new_block_footer->requested_size = size;
+
+            //%%pintf("\nNBF:%p", new_block_footer);
+
+            sf_header *splinter_header = (void*) new_block_footer + sizeof(sf_footer);
+            splinter_header->block_size = (splinter_size>>4);
+            splinter_header->padded = 1;
+            splinter_header->allocated = 1;
+
+            //%%pintf("\nSH:%p", splinter_header);
+
+            input_block_footer->block_size = splinter_header->block_size;
+            input_block_footer->padded = 1;
+            input_block_footer->allocated = 1;
+            input_block_footer->requested_size = 1;
+
+            //%%pintf("\nIBF:%p", input_block_footer);
+            void* splinter_ptr = (void*) splinter_header + sizeof(sf_header);
+            //%%pintf("\ns-p:%p", splinter_ptr);
+
+            sf_free(splinter_ptr);
+
+            return ptr;
+        } else {
+            //%%pintf("\nNew size is less than original size, \nallocating new position \nNO splinter");
+            input_block_header->padded = padding_reqd;
+
+            input_block_footer->padded = input_block_header->padded;
+            input_block_footer->allocated = input_block_header->allocated;
+            input_block_footer->block_size = input_block_header->block_size;
+            input_block_footer->requested_size = size;
+
+            return ptr;
+        }
+    }
+
     return NULL;
 }
 
-void check_valid_ptr_for_free(void* ptr){
+void check_valid_ptr(void *ptr){
     if (ptr == NULL) {
         //%%pintf("\nabort due to NULL");
         abort();
@@ -202,6 +301,8 @@ void check_valid_ptr_for_free(void* ptr){
     }
 
     if (head->allocated == 0 || footer->allocated == 0) {
+        //%%pintf("\nPtrs:%p,%p", head, footer);
+        //%%pintf("\nBits:%d, %d", (int) head->allocated, (int) footer->allocated);
         //%%pintf("\nabort due to allocated bits");
         abort();
     }
@@ -246,7 +347,7 @@ size_t perform_coalescion(void *new_free_block, size_t size_of_block) {
 }
 
 void sf_free(void* ptr) {
-    check_valid_ptr_for_free(ptr);
+    check_valid_ptr(ptr);
     fflush(stdout);
     //%%pintf("\n--------------------------------New Freeing motion--------------------------");
     //%%pintf("\nPayload to be freed is at : %p", ptr);
@@ -303,9 +404,39 @@ int extend_heap() {
     void* new_heap_end = get_heap_end();
     size_t sizeOfNewBlock = new_heap_end - old_heap_end;
     if (sizeOfNewBlock != 0) {
+        sf_free_header *new_block_header = (sf_free_header *) old_heap_end;
+        sf_footer* prev_block_footer = (void*) old_heap_end - sizeof(sf_footer);
+
+        if((void*)prev_block_footer > get_heap_start() && prev_block_footer->allocated == 0) {
+            //%%pintf("\nYay! prev block is empty.");
+            size_t prev_block_size = prev_block_footer->block_size<<4;
+            //%%pintf("\nGot the blocks size as : %d", (int) prev_block_size);
+            sf_free_header* prev_block_header = (void*) prev_block_footer - prev_block_size + sizeof(sf_footer);
+
+            sizeOfNewBlock += prev_block_size;
+
+            for (int i=0;i<FREE_LIST_COUNT;i++) {
+//                //%%pintf("\nHeaders : %p, %p", seg_free_list[i].head, prev_block_header);
+                if (seg_free_list[i].head == prev_block_header) {
+                    //%%pintf("\nFound this free list head : %d", i);
+                    seg_free_list[i].head = seg_free_list[i].head->next;
+                }
+            }
+
+            if(prev_block_header->prev!=NULL)
+                prev_block_header->prev->next = prev_block_header->next;
+
+            if(prev_block_header->next!=NULL)
+                prev_block_header->next->prev = prev_block_header->prev;
+
+            new_block_header = prev_block_header;
+
+        } else {
+            //%%pintf("\nNot empty, or beyond limit, proceeding normally");
+        }
+
         int listIndex = getListIndexFromSize(sizeOfNewBlock);
 
-        sf_free_header *new_block_header = (sf_free_header *) old_heap_end;
         new_block_header->next = seg_free_list[listIndex].head;
         new_block_header->prev = NULL;
         new_block_header->header.allocated = 0;
@@ -328,12 +459,13 @@ int extend_heap() {
 
     return 0;
 }
+
 int getListIndexFromSize(size_t sz) {
     int listno = 0;
     if (sz >= LIST_1_MIN && sz <=LIST_1_MAX) listno = 0;
     else if (sz >= LIST_2_MIN && sz <=LIST_2_MAX) listno = 1;
     else if (sz >= LIST_3_MIN && sz <=LIST_3_MAX) listno = 2;
-    else if (sz >= LIST_4_MIN) listno = 3;
+    else if (sz >= LIST_4_MIN && sz <=LIST_4_MAX) listno = 3;
 
     return listno;
 }
@@ -359,6 +491,7 @@ void print_free_list(){
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
             //%%pintf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
+            //%%pintf("\nFooter is at : %p", (void*)block + (block->header.block_size<<4) - sizeof(sf_header));
             block = block->next;
         }
     }
