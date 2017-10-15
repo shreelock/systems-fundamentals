@@ -19,6 +19,8 @@ void sbrk_back_coalesce_check();
 
 void realloc_test();
 
+void check_big_block_test();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
 
@@ -33,10 +35,16 @@ int main(int argc, char const *argv[]) {
 //    test2();
 //    newtest();
 //    sbrk_back_coalesce_check();
-    realloc_test();
+//    realloc_test();
+    check_big_block_test();
 
     sf_mem_fini();
     return EXIT_SUCCESS;
+}
+
+void check_big_block_test(){
+    sf_malloc(2*PAGE_SZ);
+    sf_malloc(PAGE_SZ);
 }
 
 void realloc_test(){

@@ -43,7 +43,7 @@ void *sf_malloc(size_t size_ip) {
      * 2. then calculate the approximate block size by adding header, footer, and necessary padding to find necessary block size
      * 3. search in all the lists for appropriate block availability. if still not available, return null and    ENOMEM
      */
-    fflush(stdout);
+//    fflush(stdout);
     //%%pintf("\n--------------------------------New Allocation----------------------------");
     //%%pintf("\nGot request size as : %d", (int) size_ip);
     if (size_ip > 4*PAGE_SZ || size_ip == 0) {
@@ -466,7 +466,7 @@ int getListIndexFromSize(size_t sz) {
     if (sz >= LIST_1_MIN && sz <=LIST_1_MAX) listno = 0;
     else if (sz >= LIST_2_MIN && sz <=LIST_2_MAX) listno = 1;
     else if (sz >= LIST_3_MIN && sz <=LIST_3_MAX) listno = 2;
-    else if (sz >= LIST_4_MIN) listno = 3;
+    else if (sz >= LIST_4_MIN && sz <=LIST_4_MAX) listno = 3;
 
     return listno;
 }
