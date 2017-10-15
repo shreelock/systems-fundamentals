@@ -140,6 +140,12 @@ void *sf_malloc(size_t size_ip) {
 //                        sf_blockprint(new_free_block);
                         } else {
 
+                            if (seg_free_list[currListIdx].head == current_block) {
+                                seg_free_list[currListIdx].head = current_block->next;
+                                printf("\nUpdated free list's header");
+//                            sf_snapshot();
+                            }
+
                             if (current_block_next !=NULL) {
                                 current_block_next->prev = current_block_prev;
                             }
@@ -148,11 +154,8 @@ void *sf_malloc(size_t size_ip) {
                                 current_block_prev->next = current_block_next;
                             }
                         }
-                        if (seg_free_list[currListIdx].head == current_block) {
-                            seg_free_list[currListIdx].head = current_block->next;
-                            //%%pintf("\nUpdated free list's header");
-//                            sf_snapshot();
-                        }
+
+
 
                         /* *
                          * return output pointer
@@ -248,22 +251,20 @@ size_t perform_coalescion(void *new_free_block, size_t size_of_block) {
 void sf_free(void* ptr) {
     check_valid_ptr_for_free(ptr);
     fflush(stdout);
-    //%%pintf("\n--------------------------------New Freeing motion--------------------------");
-    //%%pintf("\nPayload to be freed is at : %p", ptr);
+    printf("\n--------------------------------New Freeing motion--------------------------");
+    printf("\nPayload to be freed is at : %p", ptr);
     sf_header* free_block = (sf_header*)ptr - sizeof(sf_header);
-    //%%pintf("\nHeader of the freed payload is at : %p", free_block);
+    printf("\nHeader of the freed payload is at : %p", free_block);
 
     sf_free_header* new_free_block = (sf_free_header*) free_block;
-
     size_t size_of_block = ((free_block->block_size)<<4);
-    //%%pintf("\nSize of the block to be freed : %d", (int)size_of_block);
 
     size_of_block = perform_coalescion(new_free_block, size_of_block);
-    //%%pintf("\nPerformed coalescion, new size  :%d", size_of_block);
+
+    printf("\nSize of the block to be freed : %d", (int)size_of_block);
 
     int listIndex = getListIndexFromSize(size_of_block);
-    //%%pintf("\nGot appropriate list index = %d", listIndex);
-
+    printf("\nGot appropriate list index = %d", listIndex);
 
     new_free_block->next = seg_free_list[listIndex].head;
     new_free_block->prev = NULL;
@@ -281,14 +282,14 @@ void sf_free(void* ptr) {
         seg_free_list[listIndex].head->prev = new_free_block;
     seg_free_list[listIndex].head = new_free_block;
 
-    //%%pintf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
+    printf("\nThe updated head of the list after freeing is at : %p\n\n", seg_free_list[listIndex].head);
 //    sf_blockprint(seg_free_list[listIndex].head);
 
 }
 
 
 int extend_heap() {
-    //%%pintf("\nInside Extend Heap");
+    printf("\nInside Extend Heap");
     void* old_heap_end = get_heap_end();
     if (old_heap_end == NULL) {
         sf_sbrk();
@@ -297,7 +298,7 @@ int extend_heap() {
         void* sbrk_ret = sf_sbrk();
         fflush(stdout);
         if (sbrk_ret == (void *) -1) {
-            //%%pintf("\nSBRK returned -1. Abort!");
+            printf("\nSBRK returned -1. Abort!");
             return 0;
         }
     }
@@ -321,10 +322,10 @@ int extend_heap() {
         footer->requested_size = 0;
 
         seg_free_list[listIndex].head = new_block_header;
-        //%%pintf("\n New block Init at : %p", new_block_header);
-        //%%pintf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
+        printf("\n New block Init at : %p", new_block_header);
+        printf("\n New Block Size : %d", (int) new_block_header->header.block_size<<4);
 
-        //%%pintf("\nFinal Memory location is : %p", get_heap_end());
+        printf("\nFinal Memory location is : %p", get_heap_end());
         return 1;
     }
 
@@ -341,26 +342,26 @@ int getListIndexFromSize(size_t sz) {
 }
 
 void print_heap_overview() {
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
     sf_sbrk();
-    //%%pintf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
+    printf("%p, \t%p, %d\n", get_heap_start(), get_heap_end(), (int) (get_heap_end() - get_heap_start()));
 }
 
 void print_free_list(){
-    //%%pintf("\n\n\n");
+    printf("\n\n\n");
     for(int i=0;i<4;i++){
-        //%%pintf("\nList no. %d :", i);
+        printf("\nList no. %d :", i);
         sf_free_header* block = seg_free_list[i].head;
         while(block!=NULL) {
-            //%%pintf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
+            printf("\nSize: %d, \tPrev: %p, \tHead: %p, \tNext: %p", (int)block->header.block_size<<4, block->prev, block, block->next);
             block = block->next;
         }
     }

@@ -25,28 +25,22 @@ int main(int argc, char const *argv[]) {
 }
 
 void check_coal(){
-    int* f2 = sf_malloc(2000);*f2=0;
-    sf_snapshot();
-    print_free_list();
     int* f1 = sf_malloc(10);*f1=0;
-
-//    int* f3 = sf_malloc(10);
-//    int* f4 = sf_malloc(10);
+    int* f2 = sf_malloc(1000);*f2=0;
+    int* f3 = sf_malloc(10);*f3=0;
+    int* f4 = sf_malloc(10);*f4=0;
+    int* f5 = sf_malloc(10);*f5=0;
     sf_snapshot();
-//    print_free_list();
-//    print_free_list();
-//    sf_free(f3);
-//    sf_snapshot();
-//    print_free_list();
+    sf_free(f4);
+    sf_snapshot();
+    sf_free(f5);
+    sf_snapshot();
+    sf_free(f3);
+    sf_snapshot();
     sf_free(f2);
     sf_snapshot();
-//    print_free_list();
-//    sf_free(f2);
-//    sf_snapshot();
-//    print_free_list();
     sf_free(f1);
     sf_snapshot();
-//    print_free_list();
 }
 
 void check_free_errors(){
