@@ -140,12 +140,6 @@ void *sf_malloc(size_t size_ip) {
 //                        sf_blockprint(new_free_block);
                         } else {
 
-                            if (seg_free_list[currListIdx].head == current_block) {
-                                seg_free_list[currListIdx].head = current_block->next;
-                                printf("\nUpdated free list's header");
-//                            sf_snapshot();
-                            }
-
                             if (current_block_next !=NULL) {
                                 current_block_next->prev = current_block_prev;
                             }
@@ -154,8 +148,11 @@ void *sf_malloc(size_t size_ip) {
                                 current_block_prev->next = current_block_next;
                             }
                         }
-
-
+                        if (seg_free_list[currListIdx].head == current_block) {
+                            seg_free_list[currListIdx].head = current_block->next;
+                            //%%pintf("\nUpdated free list's header");
+//                            sf_snapshot();
+                        }
 
                         /* *
                          * return output pointer
