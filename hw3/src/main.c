@@ -13,19 +13,36 @@ void check_coal();
 
 void test2();
 
+void newtest();
+
 int main(int argc, char const *argv[]) {
     sf_mem_init();
 
 //    check_coal();
 //    print_heap_overview();
-    test_mid_of_list();
+//    test_mid_of_list();
 //    check_no_splinter_creation();
 //    check_no_splinter_creation();
 //    check_heap_extension();
 //    check_free_errors();
 //    sf_snapshot();
 //    test2();
+//    newtest();
+    sf_mem_fini();
     return EXIT_SUCCESS;
+}
+
+void newtest(){
+    sf_snapshot();
+    double* p1 = sf_malloc(3000);
+    sf_snapshot();
+    double* p2 = sf_malloc(32);
+    sf_snapshot();
+
+    sf_free(p2);
+    sf_snapshot();
+    sf_free(p1);
+    sf_snapshot();
 }
 
 void check_coal(){

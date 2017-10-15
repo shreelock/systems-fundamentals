@@ -186,3 +186,67 @@ Test(sf_memsuite_student, realloc_smaller_block_free_block, .init = sf_mem_init,
 //DO NOT DELETE THESE COMMENTS
 //############################################
 
+Test(sf_memsuite_student, coalesce, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int *f1 = sf_malloc(10);*f1 = 0;
+    int *f2 = sf_malloc(1000);*f2 = 0;
+    int *f3 = sf_malloc(10);*f3 = 0;
+    int *f4 = sf_malloc(10);*f4 = 0;
+    int *f5 = sf_malloc(10);*f5 = 0;
+    sf_free(f5);
+    sf_free(f4);
+    sf_free(f3);
+    sf_free(f2);
+    sf_free(f1);
+
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            cr_assert(fh->header.block_size << 4 == 4096, "Coalescing not done right!");
+    }
+}
+
+
+Test(sf_memsuite_student, heap_extension, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int* g0 = sf_malloc(4060);*g0 = 9;
+    int* g1 = sf_malloc(4060);*g1 = 9;
+    int* g2 = sf_malloc(4060);*g2 = 9;
+    int* g3 = sf_malloc(4060);*g3 = 9;
+
+    cr_assert_null(sf_malloc(4060), "Heap total size limit not being honored");
+}
+
+
+Test(sf_memsuite_student, colaesce_two, .init = sf_mem_init, .fini = sf_mem_fini) {
+    int* g0 = sf_malloc(10);*g0 = 9;
+    int* g1 = sf_malloc(10);*g1 = 9;
+
+    sf_free(g0);
+    sf_free(g1);
+
+    int i,count=0;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            count++;
+    }
+    cr_assert(count==2, "Coalescing not done right. we should have two lists");
+}
+
+
+Test(sf_memsuite_student, value_check, .init = sf_mem_init, .fini = sf_mem_fini) {
+    double* ptr = sf_malloc(5);*ptr = 9;
+    cr_assert_not_null(ptr, "allocation wrong");
+    cr_assert(*ptr==9, "value being set wrong");
+}
+
+
+Test(sf_memsuite_student, single_page_size, .init = sf_mem_init, .fini = sf_mem_fini) {
+    sf_free(sf_malloc(5));
+    int i;
+    for (i = 0; i < FREE_LIST_COUNT; i++) {
+        sf_free_header *fh = (sf_free_header *) (seg_free_list[i].head);
+        if (fh != NULL)
+            cr_assert(seg_free_list[i].head->header.block_size<<4 == PAGE_SZ, "Size of first block is not correct");
+    }
+}
