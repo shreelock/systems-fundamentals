@@ -1,0 +1,9 @@
+help
+ls
+cd /
+pwd
+ls -al home
+cd -
+cat < testcmds.sf
+ping google.com -c 2 | tr '[:lower:]' '[:upper:]'
+exit
