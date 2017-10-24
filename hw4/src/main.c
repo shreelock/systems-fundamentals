@@ -8,10 +8,26 @@
 #include "sfish.h"
 #include "debug.h"
 
-char* get_shell_prompt();
+struct state {
+    char* curr_dir;
+    char* prev_dir;
+};
+
+
+void init(struct state *s1);
+
+char* get_shell_prompt(struct state *s1);
+
+void process_input(char* input, struct state* currstate) ;
+
+char* sget_cwd();
+
+char* sget_home();
 
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
+    struct state curr_state;
+    init(&curr_state);
     bool exited = false;
 
     if(!isatty(STDIN_FILENO)) {
@@ -25,14 +41,14 @@ int main(int argc, char *argv[], char* envp[]) {
     }
 
     do {
-        char* prompt = get_shell_prompt();
-        //debug("Got prompt as : %s", prompt);
+        char* prompt = get_shell_prompt(&curr_state);
         input = readline(prompt);
+        process_input(input, &curr_state);
 
-        write(1, "\e[s", strlen("\e[s"));
-        write(1, "\e[20;10H", strlen("\e[20;10H"));
-        write(1, "SomeText", strlen("SomeText"));
-        write(1, "\e[u", strlen("\e[u"));
+        //write(1, "\e[s", strlen("\e[s"));
+        //write(1, "\e[20;10H", strlen("\e[20;10H"));
+        //write(1, "SomeText", strlen("SomeText"));
+        //write(1, "\e[u", strlen("\e[u"));
 
         // If EOF is read (aka ^D) readline returns NULL
         if(input == NULL) {
@@ -41,13 +57,13 @@ int main(int argc, char *argv[], char* envp[]) {
 
 
         // Currently nothing is implemented
-        printf(EXEC_NOT_FOUND, input);
+
 
         // You should change exit to a "builtin" for your hw.
         exited = strcmp(input, "exit") == 0;
 
         // Readline mallocs the space for input. You must free it.
-        rl_free(input);
+//        rl_free(input);
 
     } while(!exited);
 
@@ -56,10 +72,73 @@ int main(int argc, char *argv[], char* envp[]) {
     return EXIT_SUCCESS;
 }
 
-char* get_formatted_pwd(){
+void init(struct state *s1){
+    s1->curr_dir = sget_cwd();
+    s1->prev_dir = s1->curr_dir;
+}
+
+void update(struct state *s1){
+    s1->prev_dir = s1->curr_dir;
+    s1->curr_dir = sget_cwd();
+}
+
+void process_input(char* input, struct state* currstate) {
+    //-------------------------------------------------
+    int nargs = 1;
+    char *tmp = malloc(sizeof(input));
+    strcpy(tmp, input);
+
+    char* tempchr = strtok(tmp, " ");
+    while ((tempchr = strtok(NULL, " ")) != NULL)
+        nargs++;
+//    free(tmp);
+//    free(tempchr);
+    //debug("number of arguments = %d", nargs);
+    //-------------------------------------------------
+
+    char* first_word = strtok(input, " ");
+    if (strcmp(first_word,"exit") ==0) {
+        exit(0);
+    }
+
+    else if (strcmp (first_word, "pwd") == 0) {
+        printf("%s\n", currstate->curr_dir);
+    }
+
+    else if ( strcmp(first_word, "help") == 0 ) {
+        printf("%s\n", "This is the help menu!!");
+    }
+
+    else if (strcmp(first_word, "cd") == 0 ) {
+        //Note : Quoted arguemnts are NOT reqd. to be supported.
+        switch (nargs) {
+            case 1:
+                if (chdir(sget_home())==0) {
+                    update(currstate);
+                } else { printf(HOME_NOT_INIT); }
+                break;
+            case 2:
+                first_word = strtok(NULL, " ");
+                //printf("Path : %s\n", first_word);
+                if (strcmp(first_word, "-") == 0)
+                    first_word = currstate->prev_dir;
+                if (chdir(first_word) == 0) {
+                    update(currstate);
+                } else { printf(CD_PATH_NEXIST, first_word); }
+                break;
+            default:
+                printf(CD_WRONG_NARGS);
+        }
+    }
+
+
+    else { printf(EXEC_NOT_FOUND, input); }
+}
+
+char* get_formatted_pwd(struct state* currstate){
     char *homedir = NULL, *pwd = NULL;
-    homedir = getenv("HOME");
-    pwd = getcwd(pwd,0);
+    homedir = sget_home();
+    pwd = currstate->curr_dir;
     if (homedir !=NULL){
         char *ptr = strstr(pwd, homedir);
         if(ptr !=NULL) {
@@ -73,12 +152,26 @@ char* get_formatted_pwd(){
     return pwd;
 }
 
-char* get_shell_prompt(){
-    char* pwd = get_formatted_pwd();
+char* get_shell_prompt(struct state* s1){
+    char* pwd = get_formatted_pwd(s1);
     //debug("%s", pwd);
     char* suffix = " :: shreesharma >>";
     char* finalstring = malloc(sizeof(char)*(strlen(pwd)+ strlen(suffix)));
     strcpy(finalstring, pwd);
     strcat(finalstring, suffix);
     return finalstring;
+}
+
+char* sget_cwd(){
+    char* path = NULL;
+    path = getcwd(path, 0);
+    return path;
+}
+
+char* sget_home(){
+    char* path = NULL;
+    path = getenv("HOME");
+    if( path == NULL)
+        printf(HOME_NOT_INIT);
+    return path;
 }

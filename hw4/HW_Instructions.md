@@ -165,14 +165,14 @@ Builtins are functions defined within the shell's source.
 * Implement the following builtins:
     * **`help`**: Print a list of all builtins and their basic usage in a single column.
       Type **help** in bash to get an idea.
-    * **`exit`**: Exits the shell by using the `exit(3)` function.
-    * **`cd`**: Changes the current working directory of the shell by using the `chdir(2)` system call.
-        * `cd -` should change the working directory to the last directory the user was in.
-        * `cd` with no arguments should go to the user's home directory which is stored in the `HOME` environment variable.
-        * `cd .` and `cd ..` should be handled correctly. `.` and `..` are special directories that appear in every directory of a Unix system. They correspond to the current directory and previous directory of the current working directory.
-    * **`pwd`**: Prints the absolute path of the current working directory. This can be obtained by using the `getcwd(3)` function.
+    * ~~**`exit`**: Exits the shell by using the `exit(3)` function.~~
+    * ~~**`cd`**: Changes the current working directory of the shell by using the `chdir(2)` system call.~~
+        ~~* `cd -` should change the working directory to the last directory the user was in.~~
+        ~~* `cd` with no arguments should go to the user's home directory which is stored in the `HOME` environment variable.~~
+        ~~* `cd .` and `cd ..` should be handled correctly. `.` and `..` are special directories that appear in every directory of a Unix system. They correspond to the current directory and previous directory of the current working directory.~~
+    * ~~**`pwd`**: Prints the absolute path of the current working directory. This can be obtained by using the `getcwd(3)` function.~~
 
-~~* Modify the prompt of your shell to have the following format: `pwd :: netid >>` where `pwd` is the current working directory and `netid` is your Stony Brook Net ID.
+* ~~Modify the prompt of your shell to have the following format: `pwd :: netid >>` where `pwd` is the current working directory and `netid` is your Stony Brook Net ID.
   If the displayed working directory is a subdirectory of the user's home directory, replace the home directory with a `~`.
   For example, if the home directory is `/home/cse320`, the current directory is `/home/cse320/code`, and your netid is `yoyoma` the shell prompt should display `~/code :: yoyoma >>`.~~
 
