@@ -85,14 +85,12 @@ void update(struct state *s1){
 void process_input(char* input, struct state* currstate) {
     //-------------------------------------------------
     int nargs = 1;
-    char *tmp = malloc(sizeof(input));
-    strcpy(tmp, input);
-
+    char *tmp = strdup(input);
     char* tempchr = strtok(tmp, " ");
     while ((tempchr = strtok(NULL, " ")) != NULL)
         nargs++;
-//    free(tmp);
-//    free(tempchr);
+    free(tmp);
+    free(tempchr);
     //debug("number of arguments = %d", nargs);
     //-------------------------------------------------
 
