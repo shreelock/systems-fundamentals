@@ -24,6 +24,8 @@ char* sget_cwd();
 
 char* sget_home();
 
+void print_help();
+
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
     struct state curr_state;
@@ -105,6 +107,7 @@ void process_input(char* input, struct state* currstate) {
 
     else if ( strcmp(first_word, "help") == 0 ) {
         printf("%s\n", "This is the help menu!!");
+        print_help();
     }
 
     else if (strcmp(first_word, "cd") == 0 ) {
@@ -172,4 +175,9 @@ char* sget_home(){
     if( path == NULL)
         printf(HOME_NOT_INIT);
     return path;
+}
+
+void print_help(){
+    char* string = "Following are the builtin commands -\n1. help: Print a list of all builtins and their basic usage in a single column.\n2. exit: Exits the shell.\n3. cd: Changes the current working directory of the shell.\n4. pwd: Prints the absolute path of the current working directory.";
+    printf("%s\n",string);
 }
