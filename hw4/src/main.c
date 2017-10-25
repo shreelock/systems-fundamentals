@@ -143,7 +143,7 @@ char* get_formatted_pwd(struct state* currstate){
     if (homedir !=NULL){
         char *ptr = strstr(pwd, homedir);
         if(ptr !=NULL) {
-            size_t prompt_size = sizeof(char) * (strlen(pwd) - strlen(homedir) + 1);
+            size_t prompt_size = sizeof(char) * (strlen(pwd) - strlen(homedir) + 2);
             char *prompt = malloc(prompt_size);
             prompt[0] = '~';
             strcpy(prompt + 1, ptr + strlen(homedir));
@@ -157,7 +157,7 @@ char* get_shell_prompt(struct state* s1){
     char* pwd = get_formatted_pwd(s1);
     //debug("%s", pwd);
     char* suffix = " :: shreesharma >>";
-    char* finalstring = malloc(sizeof(char)*(strlen(pwd)+ strlen(suffix)));
+    char* finalstring = malloc(sizeof(char)*(strlen(pwd) + strlen(suffix) + 1));
     strcpy(finalstring, pwd);
     strcat(finalstring, suffix);
     return finalstring;
