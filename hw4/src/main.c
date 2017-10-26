@@ -70,7 +70,7 @@ int main(int argc, char *argv[], char* envp[]) {
         exited = strcmp(input, "exit") == 0;
 
         // Readline mallocs the space for input. You must free it.
-//        rl_free(input);
+        rl_free(input);
 
     } while(!exited);
 
@@ -146,7 +146,7 @@ void process_input(char* input, struct state* currstate) {
             wait(&child_status);
         }
     }*/
-    else if (strcmp(first_word, "cat") == 0 || strcmp(first_word, "ls") == 0 || strcmp(first_word, "grep") == 0 || strcmp(first_word, "clear") == 0){
+    else {//if (strcmp(first_word, "cat") == 0 || strcmp(first_word, "ls") == 0 || strcmp(first_word, "grep") == 0 || strcmp(first_word, "clear") == 0){
         int child_status;
         //Since fist_word pointer is iterator.
         char* command = strdup(first_word);
@@ -160,7 +160,8 @@ void process_input(char* input, struct state* currstate) {
             }
             res = realloc(res, sizeof(char*)*(nvars+1));
             res[nvars]=0;
-            execvp(command,res);
+            if( execvp(command,res)==-1 )
+                printf(EXEC_NOT_FOUND, command);
             free(res);
             free(command);
             _exit(0);
@@ -171,7 +172,7 @@ void process_input(char* input, struct state* currstate) {
 
 
 
-    else { printf(EXEC_NOT_FOUND, input); }
+//    else { printf(EXEC_NOT_FOUND, input); }
 }
 
 char* get_formatted_pwd(struct state* currstate){
