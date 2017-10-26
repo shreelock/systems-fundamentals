@@ -21,7 +21,7 @@ DFLAGS := -g -DDEBUG
 PRINT_STAMENTS := -DERROR -DSUCCESS -DWARN -DINFO
 
 STD := -std=gnu11
-TEST_LIB := -lcriterion
+TEST_LIB := -lcriterion -lreadline
 LIBS := -lreadline
 
 CFLAGS += $(STD)
