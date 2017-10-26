@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <readline/readline.h>
+#include <wait.h>
 
 #include "sfish.h"
 #include "debug.h"
@@ -26,6 +27,8 @@ char* sget_home();
 
 void print_help();
 
+char* command_to_run = NULL;
+
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
     struct state curr_state;
@@ -45,6 +48,11 @@ int main(int argc, char *argv[], char* envp[]) {
     do {
         char* prompt = get_shell_prompt(&curr_state);
         input = readline(prompt);
+        if(input == NULL || strcmp(input,"")==0) {
+            printf("\n");
+            continue;
+        }
+
         process_input(input, &curr_state);
 
         //write(1, "\e[s", strlen("\e[s"));
@@ -53,9 +61,6 @@ int main(int argc, char *argv[], char* envp[]) {
         //write(1, "\e[u", strlen("\e[u"));
 
         // If EOF is read (aka ^D) readline returns NULL
-        if(input == NULL) {
-            continue;
-        }
 
 
         // Currently nothing is implemented
@@ -131,6 +136,39 @@ void process_input(char* input, struct state* currstate) {
                 printf(CD_WRONG_NARGS);
         }
     }
+    /*
+    else if (strcmp(first_word, "ls") == 0 ){
+        int child_status;
+        if (fork() == 0) {
+            execlp("ls","ls", (char*)0);
+            exit(0);
+        } else {
+            wait(&child_status);
+        }
+    }*/
+    else if (strcmp(first_word, "cat") == 0 || strcmp(first_word, "ls") == 0 || strcmp(first_word, "grep") == 0 || strcmp(first_word, "clear") == 0){
+        int child_status;
+        //Since fist_word pointer is iterator.
+        char* command = strdup(first_word);
+        if (fork() == 0) {
+            char** res = NULL;
+            int nvars = 0;
+            while(first_word){
+                res = realloc(res, sizeof(char*)*++nvars);
+                res[nvars-1] = first_word;
+                first_word = strtok(NULL, " ");
+            }
+            res = realloc(res, sizeof(char*)*(nvars+1));
+            res[nvars]=0;
+            execvp(command,res);
+            free(res);
+            free(command);
+            _exit(0);
+        } else {
+            wait(&child_status);
+        }
+    }
+
 
 
     else { printf(EXEC_NOT_FOUND, input); }

@@ -159,12 +159,12 @@ Builtins are functions defined within the shell's source.
 
 ### Your Tasks For Part I
 
-* Implement simple command parsing in your shell.
+* ~~Implement simple command parsing in your shell.
   It is **recommended** that you use `readline(3)` to accomplish this.
-  Upon reading a line, determine if it is a builtin command, and if so execute it.
-* Implement the following builtins:
-    * **`help`**: Print a list of all builtins and their basic usage in a single column.
-      Type **help** in bash to get an idea.
+  Upon reading a line, determine if it is a builtin command, and if so execute it.~~
+* ~~Implement the following builtins:~~
+    * ~~**`help`**: Print a list of all builtins and their basic usage in a single column.
+      Type **help** in bash to get an idea.~~
     * ~~**`exit`**: Exits the shell by using the `exit(3)` function.~~
     * ~~**`cd`**: Changes the current working directory of the shell by using the `chdir(2)` system call.~~
         ~~* `cd -` should change the working directory to the last directory the user was in.~~
