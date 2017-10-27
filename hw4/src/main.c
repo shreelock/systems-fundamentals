@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <readline/readline.h>
 #include <wait.h>
+#include <fcntl.h>
 
 #include "sfish.h"
 #include "debug.h"
@@ -19,13 +20,17 @@ void init(struct state *s1);
 
 char* get_shell_prompt(struct state *s1);
 
-void process_input(char* input, struct state* currstate) ;
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate);
 
 char* sget_cwd();
 
 char* sget_home();
 
 void print_help();
+
+void process_io_redirect(char* input, struct state* currentstate);
+
+void print_credits();
 
 char* command_to_run = NULL;
 
@@ -52,8 +57,8 @@ int main(int argc, char *argv[], char* envp[]) {
             printf("\n");
             continue;
         }
-
-        process_input(input, &curr_state);
+        process_io_redirect(input, &curr_state);
+//        process_input(input, &curr_state);
 
         //write(1, "\e[s", strlen("\e[s"));
         //write(1, "\e[20;10H", strlen("\e[20;10H"));
@@ -89,10 +94,10 @@ void update(struct state *s1){
     s1->curr_dir = sget_cwd();
 }
 
-void process_input(char* input, struct state* currstate) {
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate) {
     //-------------------------------------------------
     int nargs = 1;
-    char *tmp = strdup(input);
+    char *tmp = strdup(mainarg);
     char* tempchr = strtok(tmp, " ");
     while ((tempchr = strtok(NULL, " ")) != NULL)
         nargs++;
@@ -101,7 +106,7 @@ void process_input(char* input, struct state* currstate) {
     //debug("number of arguments = %d", nargs);
     //-------------------------------------------------
 
-    char* first_word = strtok(input, " ");
+    char* first_word = strtok(mainarg, " ");
     if (strcmp(first_word,"exit") ==0) {
         exit(0);
     }
@@ -113,6 +118,10 @@ void process_input(char* input, struct state* currstate) {
     else if ( strcmp(first_word, "help") == 0 ) {
         printf("%s\n", "This is the help menu!!");
         print_help();
+    }
+
+    else if (strcmp(first_word, "credits") == 0){
+        print_credits();
     }
 
     else if (strcmp(first_word, "cd") == 0 ) {
@@ -160,6 +169,20 @@ void process_input(char* input, struct state* currstate) {
             }
             res = realloc(res, sizeof(char*)*(nvars+1));
             res[nvars]=0;
+            //-----------------------------------------------------
+            if (inarg!=NULL) {
+                //printf("Got redirection : input = _%s_\n", inarg);
+                int in = open(inarg, O_RDONLY);
+                dup2(in, STDIN_FILENO);
+                close(in);
+            }
+            if (outarg!=NULL) {
+                //printf("Got redirection : output = _%s_\n", outarg);
+                int out = creat(outarg, 0664);
+                dup2(out, STDOUT_FILENO);
+                close(out);
+            }
+            //-----------------------------------------------------
             if( execvp(command,res)==-1 )
                 printf(EXEC_NOT_FOUND, command);
             free(res);
@@ -173,6 +196,153 @@ void process_input(char* input, struct state* currstate) {
 
 
 //    else { printf(EXEC_NOT_FOUND, input); }
+}
+
+void process_io_redirect(char* input, struct state* currentstate){
+    char* inputcopy = strdup(input);
+    char* ptr = inputcopy;
+    int outarrcnt=0, inarrcnt=0, len = (int) strlen(ptr);
+    int inarrow = -1, outarrow = -1, i=0;
+    char* inarg = NULL, *outarg=NULL, *mainarg=NULL;
+
+    while(i < len) {
+        if (*ptr == '>') {
+            outarrcnt++;
+            if (outarrcnt > 1) {
+                printf(REDIRECTION_SYNTAX_ERROR);
+                return;
+            }
+            outarrow = i;
+        }
+        if (*ptr == '<') {
+            inarrcnt++;
+            if (inarrcnt++ > 1) {
+                printf(REDIRECTION_SYNTAX_ERROR);
+                return;
+            }
+            inarrow = i;
+        }
+        ptr++;
+        i++;
+    }
+
+    //printf("Found arrows at : inarr=%d, outarr=%d, lenght=%d\n", inarrow, outarrow, len);
+    if(inarrow!=-1 || outarrow!=-1){
+        int mainarglen = 0;
+        if(inarrow == -1)
+            mainarglen = outarrow;
+        else if (outarrow == -1)
+            mainarglen = inarrow;
+        else
+            mainarglen = inarrow < outarrow ? inarrow : outarrow;
+
+        //printf("-->%d\n", mainarglen);
+        if(mainarglen == 0) {
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+        mainarg = calloc((size_t)mainarglen, sizeof(char));
+        strncpy(mainarg, inputcopy, (size_t) mainarglen);
+        //printf("mainarg-------->_%s_\n", mainarg);
+        if (strcmp(mainarg, " ")==0){
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+        char* tempmainarg = mainarg;
+        while(*tempmainarg==' ')
+            tempmainarg++;
+        //printf("tempmainarg-------->_%s_\n", tempmainarg);
+
+
+        char* tempmainargend = mainarg + mainarglen - 1;
+        //printf("tempmainargend-------->_%s_\n", tempmainargend);
+
+        while(*tempmainargend==' ') {
+            *tempmainargend = '\0';
+            tempmainargend--;
+        }
+        //printf("mainarg-------->_%s_\n", tempmainarg);
+
+        mainarg = tempmainarg;
+        if(strlen(mainarg)==0) {
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+    } else {
+        mainarg = inputcopy;
+    }
+
+
+    if(inarrow!=-1){
+        int inargstart = inarrow + 1;
+        int inargend = outarrow > inarrow ? outarrow-1 : len-1;
+        int inarglen = inargend - inargstart + 1;
+
+        if(inarglen == 0){
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+        inarg = calloc((size_t) inarglen, sizeof(char));
+        strncpy(inarg, inputcopy + inargstart, (size_t) inarglen);
+        //printf("inarg-------->_%s_\n", inarg);
+
+        char* tempinarg = inarg;
+        while(*tempinarg==' ')
+            tempinarg++;
+        //printf("teminarg-------->_%s_\n", tempinarg);
+
+        char* tempinargend = inarg + inarglen -1;
+        while(*tempinargend==' ') {
+            *tempinargend = '\0';
+            tempinargend --;
+        }
+        //printf("teminarg-------->_%s_\n", tempinarg);
+
+        inarg = tempinarg;
+        if(strlen(inarg)==0) {
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+    }
+
+    if(outarrow!=-1){
+//        printf("outarrow-->%d",outarrow);
+        int outargstart = outarrow + 1;
+        int outargend = inarrow > outarrow ? inarrow-1 : len-1;
+        int outarglen = outargend - outargstart + 1;
+
+        if(outarglen == 0){
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+        outarg = calloc((size_t) outarglen, sizeof(char));
+        strncpy(outarg, inputcopy + outargstart, (size_t) outarglen);
+//        printf("outarg-------->_%s_\n", outarg);
+
+        char* tempoutarg = outarg;
+        while(*tempoutarg==' ')
+            tempoutarg++;
+//        printf("temoutarg-------->_%s_\n", tempoutarg);
+
+        char* tempoutargend = outarg + outarglen -1;
+        while(*tempoutargend ==' ') {
+            *tempoutargend = '\0';
+            tempoutargend --;
+        }
+//        printf("temoutarg-------->_%s_\n", tempoutarg);
+
+        outarg = tempoutarg;
+        if (strlen(outarg)==0) {
+            printf(REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+    }
+    process_input(mainarg, inarg, outarg, currentstate);
 }
 
 char* get_formatted_pwd(struct state* currstate){
@@ -218,5 +388,13 @@ char* sget_home(){
 
 void print_help(){
     char* string = "Following are the builtin commands -\n1. help: Print a list of all builtins and their basic usage in a single column.\n2. exit: Exits the shell.\n3. cd: Changes the current working directory of the shell.\n4. pwd: Prints the absolute path of the current working directory.";
+    printf("%s\n",string);
+}
+
+void print_credits(){
+    char*  string = "Thanks to -"\
+                    "\n1. https://stackoverflow.com/questions/11515399/implementing-shell-in-c-and-need-help-handling-input-output-redirection"\
+                    "\n2. https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings#11198630"\
+                    "";
     printf("%s\n",string);
 }
