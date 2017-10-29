@@ -15,10 +15,9 @@ struct state {
     char* prev_dir;
 };
 //TODO Compare _exit and exit
-//TODO Checkout all the UPDATES
 //TODO SIGCHILD Handling
-//TODO Formalize Error codea
-//Merge basecode
+//TODO Part IV
+//TODO Piping
 
 void init(struct state *s1);
 
@@ -62,7 +61,6 @@ int main(int argc, char *argv[], char* envp[]) {
             continue;
         }
         process_io_redirect(input, &curr_state);
-//        process_input(input, &curr_state);
 
         //write(1, "\e[s", strlen("\e[s"));
         //write(1, "\e[20;10H", strlen("\e[20;10H"));
@@ -105,10 +103,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     char* tempchr = strtok(tmp, " ");
     while ((tempchr = strtok(NULL, " ")) != NULL)
         nargs++;
-    free(tmp);
-    free(tempchr);
-    //debug("number of arguments = %d", nargs);
-    //-------------------------------------------------
+
 
     char* first_word = strtok(mainarg, " ");
     if (strcmp(first_word,"exit") ==0) {
@@ -134,7 +129,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             case 1:
                 if (chdir(sget_home())==0) {
                     update(currstate);
-                } else { printf(HOME_NOT_INIT); }
+                } else { printf(BUILTIN_ERROR, HOME_NOT_INIT); }
                 break;
             default:
                 first_word = strtok(NULL, " ");
@@ -143,7 +138,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                     first_word = currstate->prev_dir;
                 if (chdir(first_word) == 0) {
                     update(currstate);
-                } else { printf(CD_PATH_NEXIST, first_word); }
+                } else { printf(BUILTIN_ERROR, CD_PATH_NEXIST); }
         }
     }
     /*
@@ -174,7 +169,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             if (inarg!=NULL) {
                 //printf("Got redirection : input = _%s_\n", inarg);
                 if (access(inarg, F_OK)==-1){
-                    printf(FILE_NO_EXIST_ERROR, inarg);
+                    printf(SYNTAX_ERROR, FILE_NO_EXIST_ERROR);
                     return;
                 }
                 int in = open(inarg, O_RDONLY);
@@ -196,10 +191,6 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             wait(&child_status);
         }
     }
-
-
-
-//    else { printf(EXEC_NOT_FOUND, input); }
 }
 
 void process_io_redirect(char* input, struct state* currentstate){
@@ -213,7 +204,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         if (*ptr == '>') {
             outarrcnt++;
             if (outarrcnt > 1) {
-                printf(REDIRECTION_SYNTAX_ERROR);
+                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
                 return;
             }
             outarrow = i;
@@ -221,7 +212,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         if (*ptr == '<') {
             inarrcnt++;
             if (inarrcnt++ > 1) {
-                printf(REDIRECTION_SYNTAX_ERROR);
+                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
                 return;
             }
             inarrow = i;
@@ -242,14 +233,14 @@ void process_io_redirect(char* input, struct state* currentstate){
 
         //printf("-->%d\n", mainarglen);
         if(mainarglen == 0) {
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
         mainarg = calloc((size_t)mainarglen, sizeof(char));
         strncpy(mainarg, inputcopy, (size_t) mainarglen);
         //printf("mainarg-------->_%s_\n", mainarg);
         if (strcmp(mainarg, " ")==0){
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
 
@@ -270,7 +261,7 @@ void process_io_redirect(char* input, struct state* currentstate){
 
         mainarg = tempmainarg;
         if(strlen(mainarg)==0) {
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
 
@@ -285,7 +276,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         int inarglen = inargend - inargstart + 1;
 
         if(inarglen == 0){
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
 
@@ -307,42 +298,42 @@ void process_io_redirect(char* input, struct state* currentstate){
 
         inarg = tempinarg;
         if(strlen(inarg)==0) {
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
 
     }
 
     if(outarrow!=-1){
-//        printf("outarrow-->%d",outarrow);
+        //printf("outarrow-->%d",outarrow);
         int outargstart = outarrow + 1;
         int outargend = inarrow > outarrow ? inarrow-1 : len-1;
         int outarglen = outargend - outargstart + 1;
 
         if(outarglen == 0){
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
 
         outarg = calloc((size_t) outarglen, sizeof(char));
         strncpy(outarg, inputcopy + outargstart, (size_t) outarglen);
-//        printf("outarg-------->_%s_\n", outarg);
+        //printf("outarg-------->_%s_\n", outarg);
 
         char* tempoutarg = outarg;
         while(*tempoutarg==' ')
             tempoutarg++;
-//        printf("temoutarg-------->_%s_\n", tempoutarg);
+        //printf("temoutarg-------->_%s_\n", tempoutarg);
 
         char* tempoutargend = outarg + outarglen -1;
         while(*tempoutargend ==' ') {
             *tempoutargend = '\0';
             tempoutargend --;
         }
-//        printf("temoutarg-------->_%s_\n", tempoutarg);
+        //printf("temoutarg-------->_%s_\n", tempoutarg);
 
         outarg = tempoutarg;
         if (strlen(outarg)==0) {
-            printf(REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
             return;
         }
     }
@@ -386,7 +377,7 @@ char* sget_home(){
     char* path = NULL;
     path = getenv("HOME");
     if( path == NULL)
-        printf(HOME_NOT_INIT);
+        printf(EXEC_ERROR, HOME_NOT_INIT);
     return path;
 }
 
@@ -399,6 +390,7 @@ void print_credits(){
     char*  string = "Thanks to -"\
                     "\n1. https://stackoverflow.com/questions/11515399/implementing-shell-in-c-and-need-help-handling-input-output-redirection"\
                     "\n2. https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings#11198630"\
+                    "\n3. http://developerweb.net/viewtopic.php?id=4881"\
                     "";
     printf("%s\n",string);
 }
