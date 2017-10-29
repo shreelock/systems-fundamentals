@@ -136,7 +136,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                     update(currstate);
                 } else { printf(HOME_NOT_INIT); }
                 break;
-            case 2:
+            default:
                 first_word = strtok(NULL, " ");
                 //printf("Path : %s\n", first_word);
                 if (strcmp(first_word, "-") == 0)
@@ -144,9 +144,6 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 if (chdir(first_word) == 0) {
                     update(currstate);
                 } else { printf(CD_PATH_NEXIST, first_word); }
-                break;
-            default:
-                printf(CD_WRONG_NARGS);
         }
     }
     /*
