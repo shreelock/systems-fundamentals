@@ -14,7 +14,11 @@ struct state {
     char* curr_dir;
     char* prev_dir;
 };
-
+//TODO Compare _exit and exit
+//TODO Checkout all the UPDATES
+//TODO SIGCHILD Handling
+//TODO Formalize Error codea
+//Merge basecode
 
 void init(struct state *s1);
 
@@ -108,7 +112,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
 
     char* first_word = strtok(mainarg, " ");
     if (strcmp(first_word,"exit") ==0) {
-        exit(0);
+        _exit(0);
     }
 
     else if (strcmp (first_word, "pwd") == 0) {
@@ -155,38 +159,41 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             wait(&child_status);
         }
     }*/
-    else {//if (strcmp(first_word, "cat") == 0 || strcmp(first_word, "ls") == 0 || strcmp(first_word, "grep") == 0 || strcmp(first_word, "clear") == 0){
+    else {
         int child_status;
         //Since fist_word pointer is iterator.
         char* command = strdup(first_word);
         if (fork() == 0) {
-            char** res = NULL;
+            char** argsarray = NULL;
             int nvars = 0;
             while(first_word){
-                res = realloc(res, sizeof(char*)*++nvars);
-                res[nvars-1] = first_word;
+                argsarray = realloc(argsarray, sizeof(char*)*++nvars);
+                argsarray[nvars-1] = first_word;
                 first_word = strtok(NULL, " ");
             }
-            res = realloc(res, sizeof(char*)*(nvars+1));
-            res[nvars]=0;
+            argsarray = realloc(argsarray, sizeof(char*)*(nvars+1));
+            argsarray[nvars]=0;
             //-----------------------------------------------------
             if (inarg!=NULL) {
                 //printf("Got redirection : input = _%s_\n", inarg);
+                if (access(inarg, F_OK)==-1){
+                    printf(FILE_NO_EXIST_ERROR, inarg);
+                    return;
+                }
                 int in = open(inarg, O_RDONLY);
                 dup2(in, STDIN_FILENO);
                 close(in);
             }
             if (outarg!=NULL) {
                 //printf("Got redirection : output = _%s_\n", outarg);
-                int out = creat(outarg, 0664);
+                int out = creat(outarg, O_CREAT);
                 dup2(out, STDOUT_FILENO);
                 close(out);
             }
             //-----------------------------------------------------
-            if( execvp(command,res)==-1 )
+            if( execvp(command,argsarray)==-1 )
                 printf(EXEC_NOT_FOUND, command);
-            free(res);
-            free(command);
+            free(argsarray);
             _exit(0);
         } else {
             wait(&child_status);
