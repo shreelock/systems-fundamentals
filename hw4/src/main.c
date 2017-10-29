@@ -10,6 +10,9 @@
 #include "sfish.h"
 #include "debug.h"
 
+#define LEFT_ARROW '<'
+#define RIGHT_ARROW '>'
+
 struct state {
     char* curr_dir;
     char* prev_dir;
@@ -178,7 +181,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             }
             if (outarg!=NULL) {
                 //printf("Got redirection : output = _%s_\n", outarg);
-                int out = creat(outarg, O_CREAT);
+                int out = creat(outarg, 0664);
                 dup2(out, STDOUT_FILENO);
                 close(out);
             }
@@ -201,7 +204,7 @@ void process_io_redirect(char* input, struct state* currentstate){
     char* inarg = NULL, *outarg=NULL, *mainarg=NULL;
 
     while(i < len) {
-        if (*ptr == '>') {
+        if (*ptr == RIGHT_ARROW) {
             outarrcnt++;
             if (outarrcnt > 1) {
                 printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
@@ -209,7 +212,7 @@ void process_io_redirect(char* input, struct state* currentstate){
             }
             outarrow = i;
         }
-        if (*ptr == '<') {
+        if (*ptr == LEFT_ARROW) {
             inarrcnt++;
             if (inarrcnt++ > 1) {
                 printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
