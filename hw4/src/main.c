@@ -13,6 +13,7 @@
 #define CD_PATH_NEXIST "cd: path not exist"
 #define HOME_NOT_INIT "cd: home not init"
 #define REDIRECTION_SYNTAX_ERROR "Syntax error with redirection"
+#define REDIRECTION_SYNTAX_ERROR_2 "statement length zero"
 #define FILE_NO_EXIST_ERROR "File doesnt exist"
 
 #define sLEFT_ARROW '<'
@@ -33,7 +34,7 @@ void init(struct state *s1);
 
 char* get_shell_prompt(struct state *s1);
 
-void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate);
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int* pd);
 
 char* sget_cwd();
 
@@ -41,13 +42,13 @@ char* sget_home();
 
 void print_help();
 
-void process_io_redirect(char* input, struct state* currentstate);
+void process_io_redirect(char *input, struct state *currentstate, int* pd);
 
 void print_credits();
 
 void process_pipes(char *input, struct state *currentstate);
 
-char* command_to_run = NULL;
+char* get_trimmed(char* sentence) ;
 
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
@@ -68,12 +69,13 @@ int main(int argc, char *argv[], char* envp[]) {
     do {
         char* prompt = get_shell_prompt(&curr_state);
         input = readline(prompt);
+        char* inputcopy = strdup(input);
         if(input == NULL || strcmp(input,"")==0) {
             printf("\n");
             continue;
         }
-//        process_pipes(input, &curr_state);
-        process_io_redirect(input, &curr_state);
+        process_pipes(inputcopy, &curr_state);
+        //process_io_redirect(input, &curr_state);
 
         //write(1, "\e[s", strlen("\e[s"));
         //write(1, "\e[20;10H", strlen("\e[20;10H"));
@@ -109,7 +111,7 @@ void update(struct state *s1){
     s1->curr_dir = sget_cwd();
 }
 
-void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate) {
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int* pd) {
     //-------------------------------------------------
     int nargs = 1;
     char *tmp = strdup(mainarg);
@@ -154,16 +156,6 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 } else { printf(BUILTIN_ERROR, CD_PATH_NEXIST); }
         }
     }
-    /*
-    else if (strcmp(first_word, "ls") == 0 ){
-        int child_status;
-        if (fork() == 0) {
-            execlp("ls","ls", (char*)0);
-            exit(0);
-        } else {
-            wait(&child_status);
-        }
-    }*/
     else {
         int child_status;
         //Since fist_word pointer is iterator.
@@ -195,9 +187,14 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 dup2(out, STDOUT_FILENO);
                 close(out);
             }
+            if(pd !=NULL) {
+                dup2(pd[1], STDOUT_FILENO); //Magic
+            }
             //-----------------------------------------------------
-            if( execvp(command,argsarray)==-1 )
+            int execvp_ret = execvp(command,argsarray);
+            if( execvp_ret ==-1 ) {
                 printf(EXEC_NOT_FOUND, command);
+            }
             free(argsarray);
             _exit(0);
         } else {
@@ -206,7 +203,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     }
 }
 
-void process_io_redirect(char* input, struct state* currentstate){
+void process_io_redirect(char *input, struct state *currentstate, int* pd) {
     char* inputcopy = strdup(input);
     char* ptr = inputcopy;
     int outarrcnt=0, inarrcnt=0, len = (int) strlen(ptr);
@@ -217,7 +214,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         if (*ptr == sRIGHT_ARROW) {
             outarrcnt++;
             if (outarrcnt > 1) {
-                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+                printf(SYNTAX_ERROR, "LINE215");
                 return;
             }
             outarrow = i;
@@ -225,7 +222,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         if (*ptr == sLEFT_ARROW) {
             inarrcnt++;
             if (inarrcnt++ > 1) {
-                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+                printf(SYNTAX_ERROR, "LINE223");
                 return;
             }
             inarrow = i;
@@ -246,35 +243,19 @@ void process_io_redirect(char* input, struct state* currentstate){
 
         //printf("-->%d\n", mainarglen);
         if(mainarglen == 0) {
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE244");
             return;
         }
         mainarg = calloc((size_t)mainarglen, sizeof(char));
         strncpy(mainarg, inputcopy, (size_t) mainarglen);
         //printf("mainarg-------->_%s_\n", mainarg);
         if (strcmp(mainarg, " ")==0){
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE251");
             return;
         }
-
-        char* tempmainarg = mainarg;
-        while(*tempmainarg==' ')
-            tempmainarg++;
-        //printf("tempmainarg-------->_%s_\n", tempmainarg);
-
-
-        char* tempmainargend = mainarg + mainarglen - 1;
-        //printf("tempmainargend-------->_%s_\n", tempmainargend);
-
-        while(*tempmainargend==' ') {
-            *tempmainargend = '\0';
-            tempmainargend--;
-        }
-        //printf("mainarg-------->_%s_\n", tempmainarg);
-
-        mainarg = tempmainarg;
+        mainarg = get_trimmed(mainarg);
         if(strlen(mainarg)==0) {
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE272");
             return;
         }
 
@@ -289,7 +270,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         int inarglen = inargend - inargstart + 1;
 
         if(inarglen == 0){
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE287");
             return;
         }
 
@@ -297,21 +278,9 @@ void process_io_redirect(char* input, struct state* currentstate){
         strncpy(inarg, inputcopy + inargstart, (size_t) inarglen);
         //printf("inarg-------->_%s_\n", inarg);
 
-        char* tempinarg = inarg;
-        while(*tempinarg==' ')
-            tempinarg++;
-        //printf("teminarg-------->_%s_\n", tempinarg);
-
-        char* tempinargend = inarg + inarglen -1;
-        while(*tempinargend==' ') {
-            *tempinargend = '\0';
-            tempinargend --;
-        }
-        //printf("teminarg-------->_%s_\n", tempinarg);
-
-        inarg = tempinarg;
+        inarg = get_trimmed(inarg);
         if(strlen(inarg)==0) {
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LIN309");
             return;
         }
 
@@ -324,7 +293,7 @@ void process_io_redirect(char* input, struct state* currentstate){
         int outarglen = outargend - outargstart + 1;
 
         if(outarglen == 0){
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE322");
             return;
         }
 
@@ -332,110 +301,62 @@ void process_io_redirect(char* input, struct state* currentstate){
         strncpy(outarg, inputcopy + outargstart, (size_t) outarglen);
         //printf("outarg-------->_%s_\n", outarg);
 
-        char* tempoutarg = outarg;
-        while(*tempoutarg==' ')
-            tempoutarg++;
-        //printf("temoutarg-------->_%s_\n", tempoutarg);
-
-        char* tempoutargend = outarg + outarglen -1;
-        while(*tempoutargend ==' ') {
-            *tempoutargend = '\0';
-            tempoutargend --;
-        }
-        //printf("temoutarg-------->_%s_\n", tempoutarg);
-
-        outarg = tempoutarg;
+        outarg = get_trimmed(outarg);
         if (strlen(outarg)==0) {
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            printf(SYNTAX_ERROR, "LINE344");
             return;
         }
     }
-    process_input(mainarg, inarg, outarg, currentstate);
+    process_input(mainarg, inarg, outarg, currentstate, pd);
 }
 
 void process_pipes(char *input, struct state *currentstate) {
 
     char* inputcopy = strdup(input);
-    char* ptr = inputcopy;
-    int len = (int) strlen(ptr);
-    int oldpipecmdend = -2, newpipecmdend = 0, newpipecmdstart = 0, i=0;
-    char* pipecmd = NULL;
-
-    while(i < len) {
-        if (*ptr == sPIPE || i==len-1) {
-            newpipecmdstart = oldpipecmdend + 2; // To ignore the pipe completely
-            newpipecmdend = (i==len-1) ? i : i-1; // The command ends before the Pipe
-            oldpipecmdend = newpipecmdend; //For Next Iteration
-            //printf("New pipe command found at %d - %d\n", newpipecmdstart, newpipecmdend);
-
-            int pipecmdlen = newpipecmdend - newpipecmdstart + 1;
-            if (pipecmdlen == 1){ // Due to +1
-                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
-                return;
-            }
-
-            pipecmd = calloc((size_t) pipecmdlen, sizeof(char));
-            strncpy(pipecmd, inputcopy + newpipecmdstart, (size_t) pipecmdlen);
-
-
-            char* tempcmds = pipecmd;
-            while(*tempcmds==' ')
-                tempcmds++;
-
-            char* tempcmde = pipecmd + pipecmdlen -1;
-            while(*tempcmde ==' ') {
-                *tempcmde = '\0';
-                tempcmde --;
-            }
-
-            pipecmd = tempcmds;
-            if (strlen(pipecmd)==0) {
-                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
-                return;
-            }
-            //printf("Got Command to run as : _%s_\n", pipecmd);
-            process_io_redirect(pipecmd, currentstate);
-
-        }
-        ptr++;
-        i++;
+    inputcopy = get_trimmed(inputcopy);
+    if(*inputcopy==sPIPE || *(inputcopy+strlen(inputcopy)-1)==sPIPE){
+        printf(SYNTAX_ERROR, "LINE366");
+        return;
     }
-/*
-    if(newpipecmdend!=-1){
-        //printf("newpipecmdend-->%d",newpipecmdend);
-        int outargstart = newpipecmdend + 1;
-        int outargend = oldpipecmdend > newpipecmdend ? oldpipecmdend-1 : len-1;
-        int pipecmdlen = outargend - outargstart + 1;
 
-        if(pipecmdlen == 0){
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+    char* word = strtok(inputcopy, "|");
+    char** exprsarray = NULL;
+    int nvars = 0;
+    while(word){
+        exprsarray = realloc(exprsarray, sizeof(char*)*++nvars);
+        word = get_trimmed(word);
+        if(strlen(word)==0){
+            printf(SYNTAX_ERROR, "line376");
             return;
         }
-
-        pipecmd = calloc((size_t) pipecmdlen, sizeof(char));
-        strncpy(pipecmd, inputcopy + outargstart, (size_t) pipecmdlen);
-        //printf("pipecmd-------->_%s_\n", pipecmd);
-
-        char* tempoutarg = pipecmd;
-        while(*tempoutarg==' ')
-            tempoutarg++;
-        //printf("temoutarg-------->_%s_\n", tempoutarg);
-
-        char* tempoutargend = pipecmd + pipecmdlen -1;
-        while(*tempoutargend ==' ') {
-            *tempoutargend = '\0';
-            tempoutargend --;
-        }
-        //printf("temoutarg-------->_%s_\n", tempoutarg);
-
-        pipecmd = tempoutarg;
-        if (strlen(pipecmd)==0) {
-            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
-            return;
-        }
+        exprsarray[nvars-1] = word;
+        //printf("word: .%s.\n", word);
+        word = strtok(NULL, "|");
     }
-    process_input(mainarg, inarg, pipecmd, currentstate);
-*/
+
+    for (int k=0; k < nvars-1 ; k++){
+        int pd[2];
+        pipe(pd);
+        char* expr = exprsarray[k];
+        process_io_redirect(expr, currentstate, pd);
+        dup2(pd[0], STDIN_FILENO);
+        close(pd[1]);
+    }
+    process_io_redirect(exprsarray[nvars-1], currentstate, NULL);
+}
+
+
+char* get_trimmed(char* sentence) {
+    char* tempstmt = strdup(sentence);
+    while(*tempstmt==' ')
+        tempstmt++;
+
+    char* tempstmte = tempstmt + strlen(tempstmt) -1;
+    while(*tempstmte ==' ') {
+        *tempstmte = '\0';
+        tempstmte --;
+    }
+    return tempstmt;
 }
 
 char* get_formatted_pwd(struct state* currstate){
