@@ -10,8 +10,14 @@
 #include "sfish.h"
 #include "debug.h"
 
-#define LEFT_ARROW '<'
-#define RIGHT_ARROW '>'
+#define CD_PATH_NEXIST "cd: path not exist"
+#define HOME_NOT_INIT "cd: home not init"
+#define REDIRECTION_SYNTAX_ERROR "Syntax error with redirection"
+#define FILE_NO_EXIST_ERROR "File doesnt exist"
+
+#define sLEFT_ARROW '<'
+#define sRIGHT_ARROW '>'
+#define sPIPE '|'
 
 struct state {
     char* curr_dir;
@@ -21,6 +27,7 @@ struct state {
 //TODO SIGCHILD Handling
 //TODO Part IV
 //TODO Piping
+//TODO cat with empty arg not working
 
 void init(struct state *s1);
 
@@ -37,6 +44,8 @@ void print_help();
 void process_io_redirect(char* input, struct state* currentstate);
 
 void print_credits();
+
+void process_pipes(char *input, struct state *currentstate);
 
 char* command_to_run = NULL;
 
@@ -63,6 +72,7 @@ int main(int argc, char *argv[], char* envp[]) {
             printf("\n");
             continue;
         }
+//        process_pipes(input, &curr_state);
         process_io_redirect(input, &curr_state);
 
         //write(1, "\e[s", strlen("\e[s"));
@@ -204,7 +214,7 @@ void process_io_redirect(char* input, struct state* currentstate){
     char* inarg = NULL, *outarg=NULL, *mainarg=NULL;
 
     while(i < len) {
-        if (*ptr == RIGHT_ARROW) {
+        if (*ptr == sRIGHT_ARROW) {
             outarrcnt++;
             if (outarrcnt > 1) {
                 printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
@@ -212,7 +222,7 @@ void process_io_redirect(char* input, struct state* currentstate){
             }
             outarrow = i;
         }
-        if (*ptr == LEFT_ARROW) {
+        if (*ptr == sLEFT_ARROW) {
             inarrcnt++;
             if (inarrcnt++ > 1) {
                 printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
@@ -343,6 +353,91 @@ void process_io_redirect(char* input, struct state* currentstate){
     process_input(mainarg, inarg, outarg, currentstate);
 }
 
+void process_pipes(char *input, struct state *currentstate) {
+
+    char* inputcopy = strdup(input);
+    char* ptr = inputcopy;
+    int len = (int) strlen(ptr);
+    int oldpipecmdend = -2, newpipecmdend = 0, newpipecmdstart = 0, i=0;
+    char* pipecmd = NULL;
+
+    while(i < len) {
+        if (*ptr == sPIPE || i==len-1) {
+            newpipecmdstart = oldpipecmdend + 2; // To ignore the pipe completely
+            newpipecmdend = (i==len-1) ? i : i-1; // The command ends before the Pipe
+            oldpipecmdend = newpipecmdend; //For Next Iteration
+            //printf("New pipe command found at %d - %d\n", newpipecmdstart, newpipecmdend);
+
+            int pipecmdlen = newpipecmdend - newpipecmdstart + 1;
+            if (pipecmdlen == 1){ // Due to +1
+                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+                return;
+            }
+
+            pipecmd = calloc((size_t) pipecmdlen, sizeof(char));
+            strncpy(pipecmd, inputcopy + newpipecmdstart, (size_t) pipecmdlen);
+
+
+            char* tempcmds = pipecmd;
+            while(*tempcmds==' ')
+                tempcmds++;
+
+            char* tempcmde = pipecmd + pipecmdlen -1;
+            while(*tempcmde ==' ') {
+                *tempcmde = '\0';
+                tempcmde --;
+            }
+
+            pipecmd = tempcmds;
+            if (strlen(pipecmd)==0) {
+                printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+                return;
+            }
+            //printf("Got Command to run as : _%s_\n", pipecmd);
+            process_io_redirect(pipecmd, currentstate);
+
+        }
+        ptr++;
+        i++;
+    }
+/*
+    if(newpipecmdend!=-1){
+        //printf("newpipecmdend-->%d",newpipecmdend);
+        int outargstart = newpipecmdend + 1;
+        int outargend = oldpipecmdend > newpipecmdend ? oldpipecmdend-1 : len-1;
+        int pipecmdlen = outargend - outargstart + 1;
+
+        if(pipecmdlen == 0){
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+
+        pipecmd = calloc((size_t) pipecmdlen, sizeof(char));
+        strncpy(pipecmd, inputcopy + outargstart, (size_t) pipecmdlen);
+        //printf("pipecmd-------->_%s_\n", pipecmd);
+
+        char* tempoutarg = pipecmd;
+        while(*tempoutarg==' ')
+            tempoutarg++;
+        //printf("temoutarg-------->_%s_\n", tempoutarg);
+
+        char* tempoutargend = pipecmd + pipecmdlen -1;
+        while(*tempoutargend ==' ') {
+            *tempoutargend = '\0';
+            tempoutargend --;
+        }
+        //printf("temoutarg-------->_%s_\n", tempoutarg);
+
+        pipecmd = tempoutarg;
+        if (strlen(pipecmd)==0) {
+            printf(SYNTAX_ERROR, REDIRECTION_SYNTAX_ERROR);
+            return;
+        }
+    }
+    process_input(mainarg, inarg, pipecmd, currentstate);
+*/
+}
+
 char* get_formatted_pwd(struct state* currstate){
     char *homedir = NULL, *pwd = NULL;
     homedir = sget_home();
@@ -394,6 +489,7 @@ void print_credits(){
                     "\n1. https://stackoverflow.com/questions/11515399/implementing-shell-in-c-and-need-help-handling-input-output-redirection"\
                     "\n2. https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings#11198630"\
                     "\n3. http://developerweb.net/viewtopic.php?id=4881"\
+                    "\n4. https://stackoverflow.com/questions/7292642/grabbing-output-from-exec#7292659"\
                     "";
     printf("%s\n",string);
 }
