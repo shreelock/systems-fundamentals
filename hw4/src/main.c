@@ -28,13 +28,13 @@ struct state {
 //TODO SIGCHILD Handling
 //TODO Part IV
 //TODO Piping
-//TODO cat with empty arg not working
+//TODO HELP > OP.TXT
 
 void init(struct state *s1);
 
 char* get_shell_prompt(struct state *s1);
 
-void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int* pd);
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int in, int out);
 
 char* sget_cwd();
 
@@ -42,7 +42,7 @@ char* sget_home();
 
 void print_help();
 
-void process_io_redirect(char *input, struct state *currentstate, int* pd);
+void process_io_redirect(char *input, struct state *currentstate, int in, int out);
 
 void print_credits();
 
@@ -69,11 +69,12 @@ int main(int argc, char *argv[], char* envp[]) {
     do {
         char* prompt = get_shell_prompt(&curr_state);
         input = readline(prompt);
-        char* inputcopy = strdup(input);
+        //printf("\nGot input as  : %s",input);
         if(input == NULL || strcmp(input,"")==0) {
             printf("\n");
             continue;
         }
+        char* inputcopy = strdup(input);
         process_pipes(inputcopy, &curr_state);
         //process_io_redirect(input, &curr_state);
 
@@ -111,7 +112,7 @@ void update(struct state *s1){
     s1->curr_dir = sget_cwd();
 }
 
-void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int* pd) {
+void process_input(char *mainarg, char *inarg, char *outarg, struct state *currstate, int in, int out) {
     //-------------------------------------------------
     int nargs = 1;
     char *tmp = strdup(mainarg);
@@ -177,18 +178,23 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                     printf(SYNTAX_ERROR, FILE_NO_EXIST_ERROR);
                     return;
                 }
-                int in = open(inarg, O_RDONLY);
-                dup2(in, STDIN_FILENO);
-                close(in);
+                int in1 = open(inarg, O_RDONLY);
+                dup2(in1, STDIN_FILENO);
+                close(in1);
             }
             if (outarg!=NULL) {
                 //printf("Got redirection : output = _%s_\n", outarg);
-                int out = creat(outarg, 0664);
+                int out1 = creat(outarg, 0664);
+                dup2(out1, STDOUT_FILENO);
+                close(out1);
+            }
+            if(in !=0 ){
+                dup2(in, STDIN_FILENO);
+                close(in);
+            }
+            if(out !=1 ){
                 dup2(out, STDOUT_FILENO);
                 close(out);
-            }
-            if(pd !=NULL) {
-                dup2(pd[1], STDOUT_FILENO); //Magic
             }
             //-----------------------------------------------------
             int execvp_ret = execvp(command,argsarray);
@@ -203,7 +209,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     }
 }
 
-void process_io_redirect(char *input, struct state *currentstate, int* pd) {
+void process_io_redirect(char *input, struct state *currentstate, int in, int out) {
     char* inputcopy = strdup(input);
     char* ptr = inputcopy;
     int outarrcnt=0, inarrcnt=0, len = (int) strlen(ptr);
@@ -307,7 +313,7 @@ void process_io_redirect(char *input, struct state *currentstate, int* pd) {
             return;
         }
     }
-    process_input(mainarg, inarg, outarg, currentstate, pd);
+    process_input(mainarg, inarg, outarg, currentstate, in, out);
 }
 
 void process_pipes(char *input, struct state *currentstate) {
@@ -333,16 +339,19 @@ void process_pipes(char *input, struct state *currentstate) {
         //printf("word: .%s.\n", word);
         word = strtok(NULL, "|");
     }
-
+    //printf("\nnvars = %d\n", nvars);
+    int in = 0, pd[2];
     for (int k=0; k < nvars-1 ; k++){
-        int pd[2];
         pipe(pd);
         char* expr = exprsarray[k];
-        process_io_redirect(expr, currentstate, pd);
-        dup2(pd[0], STDIN_FILENO);
+        process_io_redirect(expr, currentstate, in, pd[1]);
         close(pd[1]);
+        in = pd[0];
     }
-    process_io_redirect(exprsarray[nvars-1], currentstate, NULL);
+    if (in!=0) {
+        dup2(in, 0);
+    }
+    process_io_redirect(exprsarray[nvars - 1], currentstate, 0, 1);
 }
 
 
