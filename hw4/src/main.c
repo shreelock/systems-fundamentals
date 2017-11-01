@@ -20,12 +20,29 @@
 #define sRIGHT_ARROW '>'
 #define sPIPE '|'
 
+//#define CYELLOW "\001\e[0;31m\002"
+#define RESET "\001\e[0m\002"
+#define KRED "\033[1;31m"
+#define KGRN "\033[1;32m"
+#define KYEL "\033[1;33m"
+#define KBLU "\033[1;34m"
+#define KMAG "\033[1;35m"
+#define KCYN "\033[1;36m"
+#define KWHT "\033[1;37m"
+#define KBWN "\033[0;33m"
+
 struct state {
     char* curr_dir;
     char* prev_dir;
 };
-//TODO Compare _exit and exit
-//TODO SIGCHILD Handling
+
+#define max_stopped_pids 100
+int stopped_pids[max_stopped_pids][2];
+char* cmds[max_stopped_pids];
+int no_of_stopped_jobs = 0;
+char* last_command = NULL;
+char* color = RESET;
+
 //TODO Part IV
 //TODO Piping
 //TODO HELP > OP.TXT
@@ -50,11 +67,46 @@ void process_pipes(char *input, struct state *currentstate);
 
 char* get_trimmed(char* sentence) ;
 
+char* getColorString(char* colorip) ;
+
+void handler(int sign){
+    int status, pid;
+    switch(sign){
+        case SIGINT:
+            break;
+        case SIGCHLD:
+            //printf("Got SIGCHLD\n");
+            waitpid(-1, &status, WNOHANG);
+            break;
+        case SIGTSTP:
+            //printf("\nGot SIGTSTP\n");
+            pid = waitpid(-1, &status, WSTOPPED);
+            if(WIFSTOPPED(status)) {
+                //printf("Stopped ID = %d\n", pid);
+                stopped_pids[no_of_stopped_jobs][0] = no_of_stopped_jobs;
+                stopped_pids[no_of_stopped_jobs][1] = pid;
+                //printf("lc--->%s\n", last_command);
+                cmds[no_of_stopped_jobs] = strdup(last_command);
+                //printf("in pid %d ----->%s\n",getpid(),cmds[no_of_stopped_jobs]);
+                no_of_stopped_jobs++;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
     struct state curr_state;
     init(&curr_state);
     bool exited = false;
+    signal(SIGINT, handler);
+    signal(SIGCHLD, handler);
+    signal(SIGTSTP, handler);
+
+    for (int i=0;i<max_stopped_pids;i++)
+        stopped_pids[i][0]=-1;
 
     if(!isatty(STDIN_FILENO)) {
         // If your shell is reading from a piped file
@@ -65,10 +117,11 @@ int main(int argc, char *argv[], char* envp[]) {
             exit(EXIT_FAILURE);
         }
     }
-
     do {
         char* prompt = get_shell_prompt(&curr_state);
-        input = readline(prompt);
+        char* colored_prompt=malloc(sizeof(char)*(strlen(prompt)+strlen(color)+strlen(RESET)+1));
+        sprintf(colored_prompt, "%s%s%s", color, prompt, RESET);
+        input = readline(colored_prompt);
         //printf("\nGot input as  : %s",input);
         if(input == NULL || strcmp(input,"")==0) {
             printf("\n");
@@ -76,29 +129,11 @@ int main(int argc, char *argv[], char* envp[]) {
         }
         char* inputcopy = strdup(input);
         process_pipes(inputcopy, &curr_state);
-        //process_io_redirect(input, &curr_state);
-
-        //write(1, "\e[s", strlen("\e[s"));
-        //write(1, "\e[20;10H", strlen("\e[20;10H"));
-        //write(1, "SomeText", strlen("SomeText"));
-        //write(1, "\e[u", strlen("\e[u"));
-
-        // If EOF is read (aka ^D) readline returns NULL
-
-
-        // Currently nothing is implemented
-
-
-        // You should change exit to a "builtin" for your hw.
         exited = strcmp(input, "exit") == 0;
-
         // Readline mallocs the space for input. You must free it.
         rl_free(input);
-
     } while(!exited);
-
     debug("%s", "user entered 'exit'");
-
     return EXIT_SUCCESS;
 }
 
@@ -116,14 +151,14 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     //-------------------------------------------------
     int nargs = 1;
     char *tmp = strdup(mainarg);
+    char *tmpcopy = strdup(mainarg);
     char* tempchr = strtok(tmp, " ");
     while ((tempchr = strtok(NULL, " ")) != NULL)
         nargs++;
 
-
     char* first_word = strtok(mainarg, " ");
     if (strcmp(first_word,"exit") ==0) {
-        _exit(0);
+        exit(0);
     }
 
     else if (strcmp (first_word, "pwd") == 0) {
@@ -135,8 +170,22 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
         print_help();
     }
 
+    else if ( strcmp(first_word, "jobs") == 0) {
+        for (int i = 0; i<max_stopped_pids; i++) {
+            if(cmds[i]!=NULL)
+                printf(JOBS_LIST_ITEM, stopped_pids[i][0], cmds[i]);
+            if(stopped_pids[i][0]==-1)
+                break;
+        }
+    }
+
     else if (strcmp(first_word, "credits") == 0){
         print_credits();
+    }
+
+    else if (strcmp(first_word, "color") == 0){
+        first_word = strtok(NULL, " ");
+        color = strcmp(getColorString(first_word),RESET)!=0 ? getColorString(first_word):color;
     }
 
     else if (strcmp(first_word, "cd") == 0 ) {
@@ -157,11 +206,90 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 } else { printf(BUILTIN_ERROR, CD_PATH_NEXIST); }
         }
     }
+
+    else if (strcmp(first_word, "fg") == 0 ) {
+        switch (nargs) {
+            case 1://Only fg
+                printf(EXEC_ERROR, "Usage fg [jobid]");
+                break;
+            case 2:
+                first_word = strtok(NULL, " ");
+                if (*first_word=='%'){
+                    int jid = atoi((first_word + 1));
+                    for (int i=0;i<max_stopped_pids;i++){
+                        if(stopped_pids[i][0] == jid && cmds[i]!=NULL){
+                            last_command=strdup(cmds[jid]);
+                            kill(stopped_pids[i][1],SIGCONT);
+                            stopped_pids[i][0]=0;
+                            cmds[i]=NULL;
+                            break;
+                        }
+                        if(stopped_pids[i][0]==-1) {
+                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            return;
+                        }
+                    }
+                    break;
+                }
+            default:
+                printf(EXEC_ERROR, "Usage fg [jobid]");
+                break;
+        }
+    }
+
+    else if (strcmp(first_word, "kill") == 0 ) {
+        switch (nargs) {
+            case 1://Only fg
+                printf(EXEC_ERROR, "Usage kill [jobid]");
+                return;
+            case 2:
+                first_word = strtok(NULL, " ");
+                if (*first_word=='%'){
+                    int pid = atoi((first_word + 1));
+                    for (int i=0;i<max_stopped_pids;i++){
+                        if(stopped_pids[i][0] == pid){
+                            kill(stopped_pids[i][1],SIGKILL);
+                            stopped_pids[i][0]=0;
+                            cmds[i]=NULL;
+                            return;
+                        }
+                        if(stopped_pids[i][0]==-1) {
+                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            return;
+                        }
+                    }
+                    break;
+                } else {
+                    int pid = atoi(first_word);
+                    for (int i=0;i<max_stopped_pids;i++){
+                        printf("Kill ->>>> %d, %d\n", pid, stopped_pids[i][1]);
+                        if(pid == stopped_pids[i][1]){
+                            kill(stopped_pids[i][1],SIGKILL);
+                            stopped_pids[i][0]=0;
+                            cmds[i]=NULL;
+                            return;
+                        }
+                        if(stopped_pids[i][0]==-1) {
+                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            return;
+                        }
+                    }
+                }
+            default:
+                printf(EXEC_ERROR, "Usage kill [jobid]");
+                break;
+        }
+    }
+
+
     else {
-        int child_status;
+        //int child_status;
         //Since fist_word pointer is iterator.
         char* command = strdup(first_word);
+        last_command = strdup(tmpcopy);
         if (fork() == 0) {
+            //signal(SIGINT, handler_kids);
+            //setpgid(0,0);
             char** argsarray = NULL;
             int nvars = 0;
             while(first_word){
@@ -171,6 +299,8 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             }
             argsarray = realloc(argsarray, sizeof(char*)*(nvars+1));
             argsarray[nvars]=0;
+            //-----------------------------------------------------
+
             //-----------------------------------------------------
             if (inarg!=NULL) {
                 //printf("Got redirection : input = _%s_\n", inarg);
@@ -188,6 +318,8 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 dup2(out1, STDOUT_FILENO);
                 close(out1);
             }
+            //TODO : Magic
+            /*//-----------------------------------------------------
             if(in !=0 ){
                 dup2(in, STDIN_FILENO);
                 close(in);
@@ -197,14 +329,15 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 close(out);
             }
             //-----------------------------------------------------
+             */
             int execvp_ret = execvp(command,argsarray);
             if( execvp_ret ==-1 ) {
                 printf(EXEC_NOT_FOUND, command);
             }
             free(argsarray);
-            _exit(0);
+            exit(0);
         } else {
-            wait(&child_status);
+            pause();
         }
     }
 }
@@ -342,15 +475,15 @@ void process_pipes(char *input, struct state *currentstate) {
     //printf("\nnvars = %d\n", nvars);
     int in = 0, pd[2];
     for (int k=0; k < nvars-1 ; k++){
-        pipe(pd);
+//        pipe(pd);//TODO MAGIC
         char* expr = exprsarray[k];
         process_io_redirect(expr, currentstate, in, pd[1]);
-        close(pd[1]);
-        in = pd[0];
+//        close(pd[1]);//TODO MAGIC
+//        in = pd[0];//TODO MAGIC
     }
-    if (in!=0) {
-        dup2(in, 0);
-    }
+//    if (in!=0) {//TODO MAGIC
+//        dup2(in, 0); //TODO MAGIC
+//    }//TODO MAGIC
     process_io_redirect(exprsarray[nvars - 1], currentstate, 0, 1);
 }
 
@@ -420,6 +553,28 @@ void print_credits(){
                     "\n2. https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings#11198630"\
                     "\n3. http://developerweb.net/viewtopic.php?id=4881"\
                     "\n4. https://stackoverflow.com/questions/7292642/grabbing-output-from-exec#7292659"\
+                    "\n5. https://stackoverflow.com/a/43614414"\
                     "";
     printf("%s\n",string);
+}
+
+char* getColorString(char* colorip) {
+           if (strcmp(colorip, "RED")==0){
+        return KRED;
+    } else if (strcmp(colorip, "GRN")==0){
+        return KGRN;
+    } else if (strcmp(colorip, "YEL")==0){
+        return KYEL;
+    } else if (strcmp(colorip, "BLU")==0){
+        return KBLU;
+    } else if (strcmp(colorip, "MAG")==0){
+        return KMAG;
+    } else if (strcmp(colorip, "CYN")==0){
+        return KCYN;
+    } else if (strcmp(colorip, "WHT")==0){
+        return KWHT;
+    } else if (strcmp(colorip, "BWN")==0){
+        return KBWN;
+    } else
+        return RESET;
 }
