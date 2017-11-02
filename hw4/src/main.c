@@ -45,7 +45,6 @@ char* color = RESET;
 
 //TODO Part IV
 //TODO Piping
-//TODO HELP > OP.TXT
 
 void init(struct state *s1);
 
@@ -57,7 +56,7 @@ char* sget_cwd();
 
 char* sget_home();
 
-void print_help();
+char * get_help();
 
 void process_io_redirect(char *input, struct state *currentstate, int in, int out);
 
@@ -160,16 +159,15 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     if (strcmp(first_word,"exit") ==0) {
         exit(0);
     }
-
+/*
     else if (strcmp (first_word, "pwd") == 0) {
-        printf("%s\n", currstate->curr_dir);
+        puts(currstate->curr_dir);
     }
 
     else if ( strcmp(first_word, "help") == 0 ) {
-        printf("%s\n", "This is the help menu!!");
-        print_help();
+        puts(get_help());
     }
-
+*/
     else if ( strcmp(first_word, "jobs") == 0) {
         for (int i = 0; i<max_stopped_pids; i++) {
             if(cmds[i]!=NULL)
@@ -330,9 +328,24 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
             }
             //-----------------------------------------------------
              */
-            int execvp_ret = execvp(command,argsarray);
-            if( execvp_ret ==-1 ) {
-                printf(EXEC_NOT_FOUND, command);
+
+            if (strcmp (command, "pwd") == 0) {
+                //char *ret = malloc((strlen(currstate->curr_dir) + 2)*sizeof(char));
+                //sprintf(ret, "%s", currstate->curr_dir);
+                puts(currstate->curr_dir);
+            }
+
+            else if ( strcmp(command, "help") == 0 ) {
+                //printf("%s\n", "This is the help menu!!");
+                //get_help();
+                puts(get_help());
+            }
+
+            else {
+                int execvp_ret = execvp(command, argsarray);
+                if (execvp_ret == -1) {
+                    printf(EXEC_NOT_FOUND, command);
+                }
             }
             free(argsarray);
             exit(0);
@@ -542,9 +555,10 @@ char* sget_home(){
     return path;
 }
 
-void print_help(){
+char * get_help(){
     char* string = "Following are the builtin commands -\n1. help: Print a list of all builtins and their basic usage in a single column.\n2. exit: Exits the shell.\n3. cd: Changes the current working directory of the shell.\n4. pwd: Prints the absolute path of the current working directory.";
-    printf("%s\n",string);
+    //printf("%s\n",string);
+    return string;
 }
 
 void print_credits(){
