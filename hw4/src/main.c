@@ -6,6 +6,7 @@
 #include <readline/readline.h>
 #include <wait.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "sfish.h"
 #include "debug.h"
@@ -22,14 +23,14 @@
 
 //#define CYELLOW "\001\e[0;31m\002"
 #define RESET "\001\e[0m\002"
-#define KRED "\033[1;31m"
-#define KGRN "\033[1;32m"
-#define KYEL "\033[1;33m"
-#define KBLU "\033[1;34m"
-#define KMAG "\033[1;35m"
-#define KCYN "\033[1;36m"
-#define KWHT "\033[1;37m"
-#define KBWN "\033[0;33m"
+#define RED "\033[1;31m"
+#define GRN "\033[1;32m"
+#define YEL "\033[1;33m"
+#define BLU "\033[1;34m"
+#define MAG "\033[1;35m"
+#define CYN "\033[1;36m"
+#define WHT "\033[1;37m"
+#define BWN "\033[0;33m"
 
 struct state {
     char* curr_dir;
@@ -95,6 +96,26 @@ void handler(int sign){
     }
 }
 
+void right_prompt(){
+    time_t rawtime;
+    struct tm *info;
+    char buffer[20];
+    time( &rawtime );
+    info = localtime( &rawtime );
+    strftime(buffer,20,"%a %b %e, %I:%M%p", info);
+
+    //char* prevline = "\e[F";
+    //char* nxtline = "\e[E";
+
+    char* horpos = "\e[100G";
+    char* prevline = "\e[0G";
+    char* nxtline = "";
+    char* strin = malloc(sizeof(char)*(strlen(buffer)+strlen(prevline)+strlen(horpos)+strlen(nxtline)+2));
+    sprintf(strin,"%s%s%s%s",horpos, buffer, nxtline, prevline);
+    write(STDOUT_FILENO, strin, strlen(strin));
+    free(strin);
+}
+
 int main(int argc, char *argv[], char* envp[]) {
     char* input;
     struct state curr_state;
@@ -120,6 +141,7 @@ int main(int argc, char *argv[], char* envp[]) {
         char* prompt = get_shell_prompt(&curr_state);
         char* colored_prompt=malloc(sizeof(char)*(strlen(prompt)+strlen(color)+strlen(RESET)+1));
         sprintf(colored_prompt, "%s%s%s", color, prompt, RESET);
+        right_prompt();
         input = readline(colored_prompt);
         //printf("\nGot input as  : %s",input);
         if(input == NULL || strcmp(input,"")==0) {
@@ -574,21 +596,21 @@ void print_credits(){
 
 char* getColorString(char* colorip) {
            if (strcmp(colorip, "RED")==0){
-        return KRED;
+        return RED;
     } else if (strcmp(colorip, "GRN")==0){
-        return KGRN;
+        return GRN;
     } else if (strcmp(colorip, "YEL")==0){
-        return KYEL;
+        return YEL;
     } else if (strcmp(colorip, "BLU")==0){
-        return KBLU;
+        return BLU;
     } else if (strcmp(colorip, "MAG")==0){
-        return KMAG;
+        return MAG;
     } else if (strcmp(colorip, "CYN")==0){
-        return KCYN;
+        return CYN;
     } else if (strcmp(colorip, "WHT")==0){
-        return KWHT;
+        return WHT;
     } else if (strcmp(colorip, "BWN")==0){
-        return KBWN;
+        return BWN;
     } else
         return RESET;
 }
