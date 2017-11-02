@@ -7,6 +7,7 @@
 #include <wait.h>
 #include <fcntl.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 #include "sfish.h"
 #include "debug.h"
@@ -46,6 +47,11 @@ char* color = RESET;
 
 //TODO Part IV
 //TODO Piping
+//TODO change pgid for the newly spawned group, put that into foreground using tcprepgroup then that will be taken care.
+//TODO use find terminal width in c to get terminal weith
+//TODO fix the numbering in jobs
+//TODO in pipe, set the pgid of next in pipe process to the pg of the prev one.
+//TODO SIGSUSPEND the parent as well after pausing
 
 void init(struct state *s1);
 
@@ -105,15 +111,25 @@ void right_prompt(){
     strftime(buffer,20,"%a %b %e, %I:%M%p", info);
 
     //char* prevline = "\e[F";
-    //char* nxtline = "\e[E";
+    //char* curpos = "\e[E";
 
-    char* horpos = "\e[100G";
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+    //printf ("lines %d\n", w.ws_row);
+    //printf ("columns %d\n", w.ws_col);
+    char* demo_pos = "\e[150G";
     char* prevline = "\e[0G";
-    char* nxtline = "";
-    char* strin = malloc(sizeof(char)*(strlen(buffer)+strlen(prevline)+strlen(horpos)+strlen(nxtline)+2));
-    sprintf(strin,"%s%s%s%s",horpos, buffer, nxtline, prevline);
+
+    char* curpos = malloc((strlen(demo_pos)+1)*sizeof(char));
+    int finalpos = (int) (w.ws_col - strlen(buffer) + 1);
+    sprintf(curpos, "%s%d%s", "\e[", finalpos,"G");
+
+    char* strin = malloc(sizeof(char)*(strlen(buffer)+strlen(prevline)+strlen(curpos)+2));
+    sprintf(strin,"%s%s%s",curpos, buffer, prevline);
     write(STDOUT_FILENO, strin, strlen(strin));
     free(strin);
+    free(curpos);
 }
 
 int main(int argc, char *argv[], char* envp[]) {
