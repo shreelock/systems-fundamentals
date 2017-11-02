@@ -210,7 +210,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     else if (strcmp(first_word, "fg") == 0 ) {
         switch (nargs) {
             case 1://Only fg
-                printf(EXEC_ERROR, "Usage fg [jobid]");
+                printf(BUILTIN_ERROR, "Usage fg [jobid]");
                 break;
             case 2:
                 first_word = strtok(NULL, " ");
@@ -225,14 +225,14 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                             break;
                         }
                         if(stopped_pids[i][0]==-1) {
-                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
                             return;
                         }
                     }
                     break;
                 }
             default:
-                printf(EXEC_ERROR, "Usage fg [jobid]");
+                printf(BUILTIN_ERROR, "Usage fg [jobid]");
                 break;
         }
     }
@@ -240,7 +240,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     else if (strcmp(first_word, "kill") == 0 ) {
         switch (nargs) {
             case 1://Only fg
-                printf(EXEC_ERROR, "Usage kill [jobid]");
+                printf(BUILTIN_ERROR, "Usage kill [jobid]");
                 return;
             case 2:
                 first_word = strtok(NULL, " ");
@@ -254,7 +254,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                             return;
                         }
                         if(stopped_pids[i][0]==-1) {
-                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
                             return;
                         }
                     }
@@ -262,7 +262,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 } else {
                     int pid = atoi(first_word);
                     for (int i=0;i<max_stopped_pids;i++){
-                        printf("Kill ->>>> %d, %d\n", pid, stopped_pids[i][1]);
+                        //printf("Kill ->>>> %d, %d\n", pid, stopped_pids[i][1]);
                         if(pid == stopped_pids[i][1]){
                             kill(stopped_pids[i][1],SIGKILL);
                             stopped_pids[i][0]=0;
@@ -270,13 +270,13 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                             return;
                         }
                         if(stopped_pids[i][0]==-1) {
-                            printf(EXEC_ERROR, "Usage kill [jobid]");
+                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
                             return;
                         }
                     }
                 }
             default:
-                printf(EXEC_ERROR, "Usage kill [jobid]");
+                printf(BUILTIN_ERROR, "Usage kill [jobid]");
                 break;
         }
     }
