@@ -640,8 +640,10 @@ char* get_shell_prompt(struct state* s1){
 
 char* get_git_status(struct state *currs){
     char* propmt = malloc(20);
+    freopen("/dev/null", "w", stderr);
     char* first_word = "git rev-parse --is-inside-work-tree > tf.sfish";
     process_pipes(first_word, currs);
+    freopen("/dev/tty", "w", stderr);
     FILE* pr = fopen("tf.sfish", "r");
     char ch;
     fscanf(pr , "%c", &ch);
