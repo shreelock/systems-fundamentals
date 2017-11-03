@@ -21,6 +21,7 @@
 #define sLEFT_ARROW '<'
 #define sRIGHT_ARROW '>'
 #define sPIPE '|'
+#define sBackTick '`'
 
 //#define CYELLOW "\001\e[0;31m\002"
 #define RESET "\001\e[0m\002"
@@ -74,6 +75,8 @@ void process_pipes(char *input, struct state *currentstate);
 char* get_trimmed(char* sentence) ;
 
 char* getColorString(char* colorip) ;
+
+void process_backticks(char* input, struct state *currentstate) ;
 
 void handler(int sign){
     int status, pid;
@@ -383,6 +386,7 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 int execvp_ret = execvp(command, argsarray);
                 if (execvp_ret == -1) {
                     printf(EXEC_NOT_FOUND, command);
+                    kill(getpid(), SIGTERM);
                 }
             }
             free(argsarray);
@@ -538,6 +542,51 @@ void process_pipes(char *input, struct state *currentstate) {
     process_io_redirect(exprsarray[nvars - 1], currentstate, 0, 1);
 }
 
+void process_backticks(char* input, struct state *currentstate) {
+    char* inputcp = strdup(input);
+    inputcp = get_trimmed(inputcp);
+    int hasbacktick = 0;
+
+    for(int i=0;i<strlen(inputcp);i++) {
+        if(inputcp[i]==sBackTick)
+            hasbacktick++;
+    }
+
+    if(hasbacktick==2) {
+        char *word = strtok(inputcp, "`");
+        char **exprsarray = NULL;
+        int nvars = 0;
+        while (word) {
+            exprsarray = realloc(exprsarray, sizeof(char *) * ++nvars);
+            word = get_trimmed(word);
+            if (strlen(word) == 0) {
+                printf(SYNTAX_ERROR, "line554");
+                return;
+            }
+            exprsarray[nvars - 1] = word;
+            //printf("word: .%s.\n", word);
+            word = strtok(NULL, "`");
+        }
+        for (int k = 0; k < nvars; k++) {
+            printf("%s\n", exprsarray[k]);
+        }
+
+        char* backticked_expr = get_trimmed(exprsarray[1]);
+        int fd[2];
+        pipe(fd);
+        dup2(fd[1],STDOUT_FILENO);
+
+        //TODO
+
+
+    } else if (hasbacktick==0) {
+        process_pipes(inputcp, currentstate);
+    } else {
+        printf(SYNTAX_ERROR, "Wrong number of backticks");
+    }
+
+
+}
 
 char* get_trimmed(char* sentence) {
     char* tempstmt = strdup(sentence);
