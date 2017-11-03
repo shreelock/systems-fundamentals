@@ -78,6 +78,8 @@ char* getColorString(char* colorip) ;
 
 void process_backticks(char* input, struct state *currentstate) ;
 
+char * get_git_status(struct state *currs);
+
 void handler(int sign){
     int status, pid;
     switch(sign){
@@ -158,8 +160,10 @@ int main(int argc, char *argv[], char* envp[]) {
     }
     do {
         char* prompt = get_shell_prompt(&curr_state);
-        char* colored_prompt=malloc(sizeof(char)*(strlen(prompt)+strlen(color)+strlen(RESET)+1));
-        sprintf(colored_prompt, "%s%s%s", color, prompt, RESET);
+        char* gitstatus = get_git_status(&curr_state);
+        char* colored_prompt=malloc(sizeof(char)*(strlen(prompt)+strlen(gitstatus)+strlen(color)+strlen(RESET)+1));
+        sprintf(colored_prompt, "%s%s%s%s", color,gitstatus, prompt, RESET);
+        //get_git_status(&curr_state);
         right_prompt();
         input = readline(colored_prompt);
         //printf("\nGot input as  : %s",input);
@@ -192,11 +196,13 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     int nargs = 1;
     char *tmp = strdup(mainarg);
     char *tmpcopy = strdup(mainarg);
+    char *tmpcopy2 = strdup(mainarg);
     char* tempchr = strtok(tmp, " ");
-    while ((tempchr = strtok(NULL, " ")) != NULL)
+    while ((tempchr = strtok(NULL, " ")) != NULL) {
         nargs++;
+    }
 
-    char* first_word = strtok(mainarg, " ");
+    char* first_word = strtok(tmpcopy2, " ");
     if (strcmp(first_word,"exit") ==0) {
         exit(0);
     }
@@ -630,6 +636,30 @@ char* get_shell_prompt(struct state* s1){
     strcpy(finalstring, pwd);
     strcat(finalstring, suffix);
     return finalstring;
+}
+
+char* get_git_status(struct state *currs){
+    char* propmt = malloc(20);
+    char* first_word = "git rev-parse --is-inside-work-tree > tf.sfish";
+    process_pipes(first_word, currs);
+    FILE* pr = fopen("tf.sfish", "r");
+    char ch;
+    fscanf(pr , "%c", &ch);
+    fclose(pr);
+    remove("tf.sfish");
+    if(ch=='t') {
+        char* sec_word = "git status -s | wc -l > gitop.txt";
+        process_pipes(sec_word, currs);
+        FILE* r = fopen("gitop.txt", "r");
+        int num;
+        fscanf(r , "%d", &num);
+        fclose(r);
+        remove("gitop.txt");
+        //printf("%d ",num);
+        sprintf(propmt,"%d ", num);
+        return propmt;
+    }
+    return "";
 }
 
 char* sget_cwd(){
