@@ -142,9 +142,9 @@ int main(int argc, char *argv[], char* envp[]) {
     struct state curr_state;
     init(&curr_state);
     bool exited = false;
-    //signal(SIGINT, handler);
+    signal(SIGINT, handler);
     signal(SIGCHLD, handler);
-    //signal(SIGTSTP, handler);
+    signal(SIGTSTP, handler);
 
     for (int i=0;i<max_stopped_pids;i++)
         stopped_pids[i][0]=-1;
