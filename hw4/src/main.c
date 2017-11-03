@@ -168,7 +168,7 @@ int main(int argc, char *argv[], char* envp[]) {
             continue;
         }
         char* inputcopy = strdup(input);
-        process_pipes(inputcopy, &curr_state);
+        process_backticks(inputcopy, &curr_state);
         exited = strcmp(input, "exit") == 0;
         // Readline mallocs the space for input. You must free it.
         rl_free(input);
@@ -564,16 +564,23 @@ void process_backticks(char* input, struct state *currentstate) {
             //printf("word: .%s.\n", word);
             word = strtok(NULL, "`");
         }
-        for (int k = 0; k < nvars; k++) {
+        /*for (int k = 0; k < nvars; k++) {
             printf("%s\n", exprsarray[k]);
-        }
+        }*/
 
-        //char* backticked_expr = get_trimmed(exprsarray[1]);
-        int fd[2];
+        char* backticked_expr = get_trimmed(exprsarray[1]);
+                                                //printf("-->%s\n", backticked_expr);
+        char* pre_backtick_expr = get_trimmed(exprsarray[0]);
+                                                //printf("-->%s\n", pre_backtick_expr);
+        int in = STDIN_FILENO, fd[2];
         pipe(fd);
-        dup2(fd[1],STDOUT_FILENO);
-
-        //TODO
+                                                //printf("done this\n");
+        process_io_redirect(backticked_expr, currentstate, in, fd[1]);
+                                                //printf("done this\n");
+        close(fd[1]);
+                                                //printf("done this\n");
+        process_io_redirect(pre_backtick_expr, currentstate, fd[0], STDOUT_FILENO);
+                                                //printf("done this\n");
 
 
     } else if (hasbacktick==0) {
