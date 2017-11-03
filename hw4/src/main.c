@@ -140,9 +140,9 @@ int main(int argc, char *argv[], char* envp[]) {
     struct state curr_state;
     init(&curr_state);
     bool exited = false;
-    signal(SIGINT, handler);
+    //signal(SIGINT, handler);
     signal(SIGCHLD, handler);
-    signal(SIGTSTP, handler);
+    //signal(SIGTSTP, handler);
 
     for (int i=0;i<max_stopped_pids;i++)
         stopped_pids[i][0]=-1;
@@ -357,18 +357,18 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
                 dup2(out1, STDOUT_FILENO);
                 close(out1);
             }
-            //TODO : Magic
-            /*//-----------------------------------------------------
-            if(in !=0 ){
+
+            //-----------------------------------------------------
+            if(in != STDIN_FILENO ){
                 dup2(in, STDIN_FILENO);
                 close(in);
             }
-            if(out !=1 ){
+            if(out != STDOUT_FILENO ){
                 dup2(out, STDOUT_FILENO);
                 close(out);
             }
             //-----------------------------------------------------
-             */
+
 
             if (strcmp (command, "pwd") == 0) {
                 //char *ret = malloc((strlen(currstate->curr_dir) + 2)*sizeof(char));
@@ -528,18 +528,15 @@ void process_pipes(char *input, struct state *currentstate) {
         word = strtok(NULL, "|");
     }
     //printf("\nnvars = %d\n", nvars);
-    int in = 0, pd[2];
+    int in = STDIN_FILENO, pd[2];
     for (int k=0; k < nvars-1 ; k++){
-//        pipe(pd);//TODO MAGIC
+        pipe(pd);
         char* expr = exprsarray[k];
         process_io_redirect(expr, currentstate, in, pd[1]);
-//        close(pd[1]);//TODO MAGIC
-//        in = pd[0];//TODO MAGIC
+          close(pd[1]);
+          in = pd[0];
     }
-//    if (in!=0) {//TODO MAGIC
-//        dup2(in, 0); //TODO MAGIC
-//    }//TODO MAGIC
-    process_io_redirect(exprsarray[nvars - 1], currentstate, 0, 1);
+    process_io_redirect(exprsarray[nvars - 1], currentstate, in, 1);
 }
 
 void process_backticks(char* input, struct state *currentstate) {
@@ -571,7 +568,7 @@ void process_backticks(char* input, struct state *currentstate) {
             printf("%s\n", exprsarray[k]);
         }
 
-        char* backticked_expr = get_trimmed(exprsarray[1]);
+        //char* backticked_expr = get_trimmed(exprsarray[1]);
         int fd[2];
         pipe(fd);
         dup2(fd[1],STDOUT_FILENO);
