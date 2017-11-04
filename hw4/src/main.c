@@ -42,14 +42,13 @@ struct state {
 #define max_stopped_pids 100
 int stopped_pids[max_stopped_pids][2];
 char* cmds[max_stopped_pids];
-int no_of_stopped_jobs = 0;
+int jobcount = 0;
 char* last_command = NULL;
 char* color = RESET;
 
 //TODO Part IV
 //TODO Piping
 //TODO change pgid for the newly spawned group, put that into foreground using tcprepgroup then that will be taken care.
-//TODO use find terminal width in c to get terminal weith
 //TODO fix the numbering in jobs
 //TODO in pipe, set the pgid of next in pipe process to the pg of the prev one.
 //TODO SIGSUSPEND the parent as well after pausing
@@ -80,6 +79,12 @@ void process_backticks(char* input, struct state *currentstate) ;
 
 char * get_git_status(struct state *currs);
 
+void printjobq(){
+    for (int i=0;i<max_stopped_pids && stopped_pids[i][0]!=-1;i++){
+        printf("\n%d-%d-%d-%s",i, stopped_pids[i][0], stopped_pids[i][1], cmds[i]);
+    }
+}
+
 void handler(int sign){
     int status, pid;
     switch(sign){
@@ -92,14 +97,28 @@ void handler(int sign){
         case SIGTSTP:
             //printf("\nGot SIGTSTP\n");
             pid = waitpid(-1, &status, WSTOPPED);
+            int flag=0;
             if(WIFSTOPPED(status)) {
-                //printf("Stopped ID = %d\n", pid);
-                stopped_pids[no_of_stopped_jobs][0] = no_of_stopped_jobs;
-                stopped_pids[no_of_stopped_jobs][1] = pid;
-                //printf("lc--->%s\n", last_command);
-                cmds[no_of_stopped_jobs] = strdup(last_command);
-                //printf("in pid %d ----->%s\n",getpid(),cmds[no_of_stopped_jobs]);
-                no_of_stopped_jobs++;
+                for (int i =0 ;i<max_stopped_pids && stopped_pids[i][0] != -1; i ++) {
+                    if (stopped_pids[i][1]==pid){
+                        stopped_pids[i][0]=0;
+                        flag=1;
+                        //printf("Flagged\n");
+                        //printjobq();
+                        break;
+                    }
+                }
+                if(flag==0) {
+                    //printf("Stopped ID = %d\n", pid);
+                    stopped_pids[jobcount][0] = 0;
+                    stopped_pids[jobcount][1] = pid;
+                    //printf("lc--->%s\n", last_command);
+                    cmds[jobcount] = strdup(last_command);
+                    //printf("in pid %d ----->%s\n",getpid(),cmds[jobcount]);
+                    //printf("created new entry\n");
+                    //printjobq();
+                    jobcount++;
+                }
             }
             break;
         default:
@@ -216,11 +235,9 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     }
 */
     else if ( strcmp(first_word, "jobs") == 0) {
-        for (int i = 0; i<max_stopped_pids; i++) {
-            if(cmds[i]!=NULL)
-                printf(JOBS_LIST_ITEM, stopped_pids[i][0], cmds[i]);
-            if(stopped_pids[i][0]==-1)
-                break;
+        for (int i = 0; i<max_stopped_pids && stopped_pids[i][0]!=-1; i++) {
+            if(stopped_pids[i][0]==0)//Show Stopped processes only
+                printf(JOBS_LIST_ITEM, i+1, cmds[i]);
         }
     }
 
@@ -255,29 +272,27 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     else if (strcmp(first_word, "fg") == 0 ) {
         switch (nargs) {
             case 1://Only fg
-                printf(BUILTIN_ERROR, "Usage fg [jobid]");
+                printf(BUILTIN_ERROR, "Usage fg [jobid6]");
                 break;
             case 2:
                 first_word = strtok(NULL, " ");
                 if (*first_word=='%'){
-                    int jid = atoi((first_word + 1));
-                    for (int i=0;i<max_stopped_pids;i++){
-                        if(stopped_pids[i][0] == jid && cmds[i]!=NULL){
-                            last_command=strdup(cmds[jid]);
-                            kill(stopped_pids[i][1],SIGCONT);
-                            stopped_pids[i][0]=0;
-                            cmds[i]=NULL;
-                            break;
-                        }
-                        if(stopped_pids[i][0]==-1) {
-                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
-                            return;
-                        }
+                    //printf("--%c",*(first_word+1));
+                    int jid = atoi(first_word+1)-1;
+                    //printf("JID = %d\n", jid);
+                    //printjobq();
+                    if(stopped_pids[jid][0]==0){
+                        kill(stopped_pids[jid][1], SIGCONT);
+                        stopped_pids[jid][0]=1;
+                        //printjobq();
+                    } else {
+                        printf(BUILTIN_ERROR, "Usage fg [jobid5]");
+                        return;
                     }
                     break;
                 }
             default:
-                printf(BUILTIN_ERROR, "Usage fg [jobid]");
+                printf(BUILTIN_ERROR, "Usage fg [jobid4]");
                 break;
         }
     }
@@ -285,43 +300,36 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
     else if (strcmp(first_word, "kill") == 0 ) {
         switch (nargs) {
             case 1://Only fg
-                printf(BUILTIN_ERROR, "Usage kill [jobid]");
+                printf(BUILTIN_ERROR, "Usage kill [jobid3]");
                 return;
             case 2:
                 first_word = strtok(NULL, " ");
                 if (*first_word=='%'){
-                    int pid = atoi((first_word + 1));
-                    for (int i=0;i<max_stopped_pids;i++){
-                        if(stopped_pids[i][0] == pid){
-                            kill(stopped_pids[i][1],SIGKILL);
-                            stopped_pids[i][0]=0;
-                            cmds[i]=NULL;
-                            return;
-                        }
-                        if(stopped_pids[i][0]==-1) {
-                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
-                            return;
-                        }
+                    //printf("--%c",*(first_word+1));
+                    int jid = atoi(first_word+1)-1;
+                    //printf("\njid=%d", jid);
+                    //printjobq();
+                    if(stopped_pids[jid][0]!=-1){
+                        kill(stopped_pids[jid][1], SIGKILL);
+                        stopped_pids[jid][0]=2;
+                        //printjobq();
+                    } else {
+                        printf(BUILTIN_ERROR, "Usage kill [jobid2]");
+                        return;
                     }
                     break;
                 } else {
                     int pid = atoi(first_word);
-                    for (int i=0;i<max_stopped_pids;i++){
-                        //printf("Kill ->>>> %d, %d\n", pid, stopped_pids[i][1]);
-                        if(pid == stopped_pids[i][1]){
+                    for (int i=0;i<max_stopped_pids && stopped_pids[i][0]!=-1;i++){
+                        if(pid == stopped_pids[i][1] && stopped_pids[i][0]!=2){
                             kill(stopped_pids[i][1],SIGKILL);
-                            stopped_pids[i][0]=0;
-                            cmds[i]=NULL;
-                            return;
-                        }
-                        if(stopped_pids[i][0]==-1) {
-                            printf(BUILTIN_ERROR, "Usage kill [jobid]");
+                            stopped_pids[i][0]=2;
                             return;
                         }
                     }
                 }
             default:
-                printf(BUILTIN_ERROR, "Usage kill [jobid]");
+                printf(BUILTIN_ERROR, "Usage kill [jobid1]");
                 break;
         }
     }
@@ -332,7 +340,12 @@ void process_input(char *mainarg, char *inarg, char *outarg, struct state *currs
         //Since fist_word pointer is iterator.
         char* command = strdup(first_word);
         last_command = strdup(tmpcopy);
-        if (fork() == 0) {
+        int pid = fork();
+        if (pid==-1){
+            printf(EXEC_ERROR, "Fork failed");
+            return;
+        }
+        if (pid == 0) {
             //signal(SIGINT, handler_kids);
             //setpgid(0,0);
             char** argsarray = NULL;
