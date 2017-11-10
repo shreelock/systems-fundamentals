@@ -7,6 +7,12 @@
 #define CREAM_H
 #include <stdint.h>
 
+#define MIN_KEY_SIZE 1
+#define MAX_KEY_SIZE  2048
+
+#define MIN_VALUE_SIZE 1
+#define MAX_VALUE_SIZE 4096
+
 typedef struct request_header_t {
     uint8_t request_code;
     uint32_t key_size;
