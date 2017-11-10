@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "const.h"
 
 typedef struct map_key_t {
     void *key_base;
