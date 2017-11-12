@@ -6,7 +6,6 @@
 
 #include "hashmap.h"
 #define NUM_THREADS 100
-#define CAPACITY 10
 #define MAP_KEY(kbase, klen) (map_key_t) {.key_base = kbase, .key_len = klen}
 #define MAP_VAL(vbase, vlen) (map_val_t) {.val_base = vbase, .val_len = vlen}
 
@@ -42,7 +41,7 @@ uint32_t jenkins_hash(map_key_t map_key) {
 }
 
 void map_init(void) {
-    global_map = create_map(CAPACITY, jenkins_hash, map_free_function);
+    global_map = create_map(NUM_THREADS, jenkins_hash, map_free_function);
 }
 
 void *thread_put(void *arg) {
