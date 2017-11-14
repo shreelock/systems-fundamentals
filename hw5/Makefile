@@ -5,16 +5,21 @@ BLDD := build
 BIND := bin
 INCD := include
 
-DEPS = ${BLDD}/hashmap.o
-EC_DEPS = ${BLDD}/extracredit.o
+MAP_SRCF := $(SRCD)/hashmap.c
+EC_MAP_SRCF := $(SRCD)/extracredit.c
 
-TESTS = ${TSTD}/hashmap_tests.c
-EC_TESTS = ${TSTD}/extracredit_tests.c
+MAP_OBJF := $(BLDD)/hashmap.o
+EC_MAP_OBJF := $(BLDD)/extracredit.o
 
-ALL_SRCF := $(shell find $(SRCD) -type f -name *.c)
+MAP_TESTF := $(TSTD)/hashmap_tests.c
+EC_TESTF := $(TSTD)/extracredit_tests.c
+
+MAIN  := build/cream.o
+
+ALL_SRCF := $(filter-out $(MAP_SRCF) $(EC_MAP_SRCF), $(wildcard $(SRCD)/*.c))
 ALL_OBJF := $(patsubst $(SRCD)/%, $(BLDD)/%, $(ALL_SRCF:.c=.o))
-ALL_FUNCF := $(filter-out build/cream.o, $(ALL_OBJF))
-ALL_TESTF := $(shell find $(TSTD) -type f -name *.c)
+ALL_FUNCF := $(filter-out $(MAIN), $(ALL_OBJF))
+ALL_TESTF := $(filter-out $(MAP_TESTF) $(EC_TESTF), $(wildcard $(TSTD)/*.c))
 
 INC := -I $(INCD)
 
@@ -34,30 +39,33 @@ LIBS := -lpthread
 .PHONY: clean all
 .DEFAULT: clean all
 
-all: DEP_OBJS := $(filter-out $(EC_DEPS), $(ALL_OBJF))
-all: DEP_FUNCS := $(filter-out $(EC_DEPS), $(ALL_FUNCF))
-all: TEST_SRC := $(filter-out $(EC_TESTS), $(ALL_TESTF))
-all: compile
+all: TEST_SRC = $(ALL_TESTF) $(MAP_TESTF)
+all: setup all_exec all_test_exec
 
-ec: DEP_OBJS := $(filter-out $(DEPS), $(ALL_OBJF))
-ec: DEP_FUNCS := $(filter-out $(DEPS), $(ALL_FUNCF))
-ec: TEST_SRC := $(filter-out $(TESTS), $(ALL_TESTF))
 ec: CFLAGS += $(ECFLAGS)
-ec: compile
-
-compile: setup $(EXEC) $(TEST_EXEC)
+ec: TEST_SRC = $(ALL_TESTF) $(EC_TESTF)
+ec: setup ec_exec ec_test_exec
 
 debug: CFLAGS += $(DFLAGS)
 debug: all
 
+debug_ec: CFLAGS += $(DFLAGS)
+debug_ec: ec
+
 setup:
 	mkdir -p bin build
 
-$(EXEC): $(ALL_OBJF)
-	$(CC) $(DEP_OBJS) -o ${BIND}/$@ $(LIBS)
+all_exec: $(ALL_OBJF) $(MAP_OBJF)
+	$(CC) $^ -o $(BIND)/$(EXEC) $(LIBS)
 
-$(TEST_EXEC): $(ALL_FUNCF)
-	$(CC) $(CFLAGS) $(INC) $(DEP_FUNCS) $(TEST_SRC) -o $(BIND)/$@ $(TEST_LIB) $(LIBS)
+all_test_exec: $(ALL_FUNCF) $(MAP_OBJF)
+	$(CC) $(CFLAGS) $(INC) $^ $(TEST_SRC) -o $(BIND)/$(TEST_EXEC) $(TEST_LIB) $(LIBS)
+
+ec_exec: $(ALL_OBJF) $(EC_MAP_OBJF)
+	$(CC) $^ -o $(BIND)/$(EXEC) $(LIBS)
+
+ec_test_exec: $(ALL_FUNCF) $(EC_MAP_OBJF)
+	$(CC) $(CFLAGS) $(INC) $^ $(TEST_SRC) -o $(BIND)/$(TEST_EXEC) $(TEST_LIB) $(LIBS)
 
 $(BLDD)/%.o: $(SRCD)/%.c
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
