@@ -57,7 +57,8 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
         // Else, check for consecutive locations in the hashmap.
     else {
         int oldindex = index;
-        while (index++ % self->capacity != oldindex){
+        index++;
+        while ((index = index%self->capacity) != oldindex){
             map_node_t *node = self->nodes + index;
             map_key_t tkey = node->key;
 
@@ -71,11 +72,13 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
                 // then we found an empty space in the later spaces and
                 // we are assigning it to the key
             else if (tkey.key_base == NULL) {
+                node->key = ikey;
                 node->val = ival;
                 node->tombstone=false;
                 self->size++;
                 return true;
             }
+            index++;
         }
         // we traversed the whole array for that key, and it was no where to be
         // found. return the null value.
@@ -127,7 +130,18 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     return MAP_VAL(NULL, 0);
 }
 
-map_node_t delete(hashmap_t *self, map_key_t key) {
+map_node_t delete(hashmap_t *self, map_key_t ikey) {
+    for(int i=0;i<self->capacity;i++){
+        map_node_t* node = self->nodes + i;
+        if(node->key.key_base == ikey.key_base && node->key.key_len == ikey.key_len){
+            map_node_t nodetoreturn = MAP_NODE(node->key, node->val, true);
+            node->key = MAP_KEY(NULL, 0);
+            node->val = MAP_VAL(NULL, 0);
+            node->tombstone = true;
+            self->size--;
+            return nodetoreturn;
+        }
+    }
     return MAP_NODE(MAP_KEY(NULL, 0), MAP_VAL(NULL, 0), false);
 }
 
