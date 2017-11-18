@@ -16,29 +16,49 @@ hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f
     hmap->invalid = false;
     if(pthread_mutex_init(&hmap->write_lock, NULL)!=0) return NULL;
     if(pthread_mutex_init(&hmap->fields_lock, NULL)!=0) return NULL;
+    if( capacity==0
+        || hash_function==NULL
+        || destroy_function==NULL
+        || hmap->nodes == NULL  ) return NULL;
     return hmap;
 }
 
 bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
+    if(self==NULL ||
+       self->invalid == true ||
+       ikey.key_base == NULL ||
+       ikey.key_len == 0 ||
+       ival.val_base == NULL ||
+       ival.val_len == 0){
+        errno = EINVAL;
+        return false;
+    }
+
     int index = get_index(self, ikey);
     if(self->capacity > self->size)
         force = false;
 
-    if(self->size == self->capacity && force == false) {
-        errno = ENOMEM;
-        return false;
-    }
-
-
     map_node_t *foundnode = self->nodes + index;
     map_key_t skey = foundnode->key;
 
-    // If we reached capacity, overwriting the index value
-    if(self->capacity == self->size && force == true){
-        foundnode->key = ikey;
-        foundnode->val = ival;
-        foundnode->tombstone = false;
-        return true;
+    // If we reached capacity
+    if(self->capacity == self->size){
+        if(force == true) {
+            if(foundnode->tombstone == false) {
+                // there is a non dead node at this position
+                // we have to evict it first, then overwrite
+                self->destroy_function(foundnode->key, foundnode->val);
+            }
+            //overwriting the index value
+            foundnode->key = ikey;
+            foundnode->val = ival;
+            foundnode->tombstone = false;
+            return true;
+        } else {
+            //throwing error
+            errno = ENOMEM;
+            return false;
+        }
     }
 
     if(skey.key_base==NULL) {
@@ -87,6 +107,15 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
 }
 
 map_val_t get(hashmap_t *self, map_key_t ikey) {
+    if(self==NULL ||
+       self->invalid == true ||
+       ikey.key_base == NULL ||
+       ikey.key_len == 0){
+        errno = EINVAL;
+        return MAP_VAL(NULL, 0);
+    }
+
+
     int index = get_index(self, ikey);
     map_node_t *foundnode = self->nodes + index;
     map_key_t skey = foundnode->key;
@@ -131,6 +160,14 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
 }
 
 map_node_t delete(hashmap_t *self, map_key_t ikey) {
+    if(self==NULL ||
+       self->invalid == true ||
+       ikey.key_base == NULL ||
+       ikey.key_len == 0){
+        errno = EINVAL;
+        return MAP_NODE(MAP_KEY(NULL, 0), MAP_VAL(NULL, 0), false);
+    }
+
     for(int i=0;i<self->capacity;i++){
         map_node_t* node = self->nodes + i;
         if(node->key.key_base == ikey.key_base && node->key.key_len == ikey.key_len){
@@ -146,9 +183,38 @@ map_node_t delete(hashmap_t *self, map_key_t ikey) {
 }
 
 bool clear_map(hashmap_t *self) {
-	return false;
+    if(self==NULL || self->invalid == true){
+        errno = EINVAL;
+        return false;
+    }
+    for (int i=0;i<self->capacity;i++){
+        map_node_t* node = self->nodes + i;
+        if(node->key.key_base !=NULL && node->tombstone == false){
+            self->destroy_function(node->key, node->val);
+        } else {
+            node->key = MAP_KEY(NULL, 0);
+            node->val = MAP_VAL(NULL, 0);
+            node->tombstone = false;
+        }
+    }
+    self->size = 0;
+    return true;
 }
 
 bool invalidate_map(hashmap_t *self) {
-    return false;
+    if(self==NULL || self->invalid == true){
+        errno = EINVAL;
+        return false;
+    }
+
+    for (int i=0;i<self->capacity;i++){
+        map_node_t* node = self->nodes + i;
+        if(node->key.key_base !=NULL && node->tombstone == false){
+            self->destroy_function(node->key, node->val);
+        }
+    }
+    free(self->nodes);
+    self->invalid = true;
+    self->size = 0;
+    return true;
 }

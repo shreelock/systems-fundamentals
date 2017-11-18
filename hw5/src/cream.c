@@ -36,35 +36,57 @@ void map_free_function2(map_key_t key, map_val_t val) {
 
 int main(int argc, char *argv[]) {
     hashmap_t* hm = create_map(3, jenkins_hash2, map_free_function2);
-    map_key_t mk1 = MAP_KEY("key1", 10);
-    map_key_t mk2 = MAP_KEY("key2", 10);
-    map_key_t mk3 = MAP_KEY("key3", 10);
-    map_key_t mk4 = MAP_KEY("key4", 10);
-    map_key_t mk5 = MAP_KEY("sey5", 10);
+    map_key_t mk1 = MAP_KEY(malloc(sizeof(char)), 10);
+    map_key_t mk2 = MAP_KEY(malloc(sizeof(char)), 10);
+    map_key_t mk3 = MAP_KEY(malloc(sizeof(char)), 10);
+    map_key_t mk4 = MAP_KEY(malloc(sizeof(char)), 10);
+    map_key_t mk5 = MAP_KEY(malloc(sizeof(char)), 10);
 
-    map_val_t mv1 = MAP_VAL("value1", 10);
-    map_val_t mv2 = MAP_VAL("value2", 10);
-    map_val_t mv3 = MAP_VAL("value3", 10);
-    map_val_t mv4 = MAP_VAL("value4", 10);
-    map_val_t mv5 = MAP_VAL("value5", 10);
+    map_val_t mv1 = MAP_VAL(malloc(sizeof(char)), 10);
+    map_val_t mv2 = MAP_VAL(malloc(sizeof(char)), 10);
+    map_val_t mv3 = MAP_VAL(malloc(sizeof(char)), 10);
+    map_val_t mv4 = MAP_VAL(malloc(sizeof(char)), 10);
+    map_val_t mv5 = MAP_VAL(malloc(sizeof(char)), 10);
 
-//    put(hm, mk1, mv1, false);
-//    printhashmap(hm);
+    put(hm, mk1, mv1, false);
+    printf("Putting : %s\n", (char *) mk1.key_base);
+    printhashmap(hm);
+
     put(hm, mk2, mv2, false);
+    printf("Putting : %s\n", (char *) mk2.key_base);
     printhashmap(hm);
+
     put(hm, mk3, mv3, false);
+    printf("Putting : %s\n", (char *) mk3.key_base);
     printhashmap(hm);
-    map_node_t n = delete(hm, mk3);
-    printf("Deleted : %s\n", n.key);
-    map_node_t n2 = delete(hm, mk3);
-    printf("Deleted : %s\n", n2.key);
+
+    put(hm, mk4, mv4, false);
+    printf("Putting : %s\n", (char *) mk4.key_base);
     printhashmap(hm);
-    put(hm, mk5, mv5, true);
+
+    printf("Deleting : %s\n", (char *) mk3.key_base);
+    delete(hm, mk3);
+    printhashmap(hm);
+
+    printf("Deleting : %s\n", (char *) mk3.key_base);
+    delete(hm, mk3);
     printhashmap(hm);
 
 
     map_val_t mvt = get(hm, mk2);
     printf("%s", (char*) mvt.val_base);
+
+    put(hm, mk5, mv5, true);
+    printf("Putting : %s\n", (char *) mk5.key_base);
+    printhashmap(hm);
+
+    clear_map(hm);
+    printhashmap(hm);
+    printf("Cleared the map\n");
+
+    invalidate_map(hm);
+    printhashmap(hm);
+
     exit(0);
 }
 
