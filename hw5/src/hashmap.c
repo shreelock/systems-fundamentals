@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <memory.h>
 #include "utils.h"
 
 #define MAP_KEY(base, len) (map_key_t) {.key_base = base, .key_len = len}
@@ -21,6 +22,15 @@ hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f
         || destroy_function==NULL
         || hmap->nodes == NULL  ) return NULL;
     return hmap;
+}
+
+int areKeysSame(map_key_t k1, map_key_t k2){
+    if(k1.key_len==k2.key_len) {
+        if (memcmp(k1.key_base, k2.key_base, k1.key_len) == 0) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
@@ -69,7 +79,7 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
         return true;
     }
     // if keys are same, update.
-    else if(skey.key_base == ikey.key_base && skey.key_len == ikey.key_len) {
+    else if(areKeysSame(skey, ikey)) {
         foundnode->val = ival;
         foundnode->tombstone = false;
         return true;
@@ -83,7 +93,7 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
             map_key_t tkey = node->key;
 
             //If keys are same for some next index, overwrite.
-            if(tkey.key_base == ikey.key_base && tkey.key_len == ikey.key_len) {
+            if(areKeysSame(tkey, ikey)) {
                 node->val = ival;
                 node->tombstone=false;
                 return true;
@@ -121,7 +131,7 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     map_key_t skey = foundnode->key;
     map_val_t sval = foundnode->val;
     // if keys are same, check if val is not null and return accordingly.
-    if(skey.key_base == ikey.key_base && skey.key_len == ikey.key_len) {
+    if(areKeysSame(skey, ikey)) {
         if(sval.val_base != NULL)
             return MAP_VAL(sval.val_base, sval.val_len);
         else
@@ -140,7 +150,7 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
             map_val_t tval = node->val;
 
             //If keys are same, check if val is not null and return accordingly.
-            if(tkey.key_base == ikey.key_base && tkey.key_len == ikey.key_len) {
+            if(areKeysSame(tkey, ikey)) {
                 if(tval.val_base!=NULL)
                     return MAP_VAL(tval.val_base, tval.val_len);
                 else
@@ -170,7 +180,7 @@ map_node_t delete(hashmap_t *self, map_key_t ikey) {
 
     for(int i=0;i<self->capacity;i++){
         map_node_t* node = self->nodes + i;
-        if(node->key.key_base == ikey.key_base && node->key.key_len == ikey.key_len){
+        if(areKeysSame(node->key, ikey)){
             map_node_t nodetoreturn = MAP_NODE(node->key, node->val, true);
             node->key = MAP_KEY(NULL, 0);
             node->val = MAP_VAL(NULL, 0);
