@@ -1,13 +1,14 @@
 #include <errno.h>
 #include "queue.h"
 
+//TODO @1178 Because you are implementing a blocking queue, all operations should not return until they are completed.
 queue_t *create_queue(void) {
     //When initialised, the queue is empty
     struct queue_t* queue = (queue_t*) calloc(1, sizeof(queue_t));
     if(queue==NULL) return NULL;
     queue->invalid = false; //Just in case
-    if(sem_init(&queue->items,0,0)!=0)  return NULL;
-    if(pthread_mutex_init(&queue->lock, NULL)!=0)   return NULL;
+    if(sem_init(&queue->items,0,0)!=0)  return NULL;                    // Number of items
+    if(pthread_mutex_init(&queue->lock, NULL)!=0)   return NULL;        // The queue operation
     return queue;
 }
 
@@ -37,7 +38,11 @@ bool enqueue(queue_t *self, void *item) {
     queue_node_t* newnode = calloc(1, sizeof(queue_node_t));
     newnode->item = item;
     newnode->next = NULL;
-
+    /*
+     * Since we always have an item available, we dont P on number of items,
+     * but rather 1. start directly by taking hold of the queue. We then do the
+     * processing, the 2. announce that item is available, then 3. release the Q.
+     */
     pthread_mutex_lock(&self->lock);
 
     if(self->front==NULL)
@@ -61,14 +66,19 @@ void *dequeue(queue_t *self) {
         errno = EINVAL;
         return NULL;
     }
-
+    /*
+     * However, while dequeuing, we dont directly take control of the queue
+     * unless an item is available. So 1. we first P on an item, after that
+     * 2. we grab the control of the queue, 3. update the item count, then
+     * 4. lose the control of the queue.
+     */
+    sem_wait(&self->items);             //Only if atleast an item is there.
     pthread_mutex_lock(&self->lock);
 
     if(self->front == self->rear){
         self->rear = NULL;
     }
     self->front = self->front->next;
-    sem_wait(&self->items);
 
     void* val = node->item;
     free(node);
