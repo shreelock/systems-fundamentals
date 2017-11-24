@@ -230,6 +230,7 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     return MAP_VAL(NULL, 0);
 }
 
+//TODO change the complexity to O(k) by adding get logic
 map_node_t delete(hashmap_t *self, map_key_t ikey) {
     if(self==NULL ||
        self->invalid == true ||

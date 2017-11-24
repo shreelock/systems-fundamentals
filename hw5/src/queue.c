@@ -1,5 +1,6 @@
 #include <errno.h>
 #include "queue.h"
+#include <stdio.h>
 
 //TODO @1178 Because you are implementing a blocking queue, all operations should not return until they are completed.
 queue_t *create_queue(void) {
@@ -72,6 +73,9 @@ void *dequeue(queue_t *self) {
      * 2. we grab the control of the queue, 3. update the item count, then
      * 4. lose the control of the queue.
      */
+    int* semval = malloc(sizeof(int));
+    sem_getvalue(&self->items, semval);
+    printf("Value of items while dequeuing : %d", *semval);
     sem_wait(&self->items);             //Only if atleast an item is there.
     pthread_mutex_lock(&self->lock);
 

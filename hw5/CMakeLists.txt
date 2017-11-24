@@ -3,7 +3,7 @@ project(hw5)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
-add_definitions(-std=c99)
+add_definitions(-std=gnu99)
 
 
 set(SOURCE_FILES
@@ -14,7 +14,9 @@ set(SOURCE_FILES
         include/hashmap.h
         include/queue.h
         include/utils.h
+        include/csapp.h
         src/cream.c
+        src/csapp.c
 #        src/extracredit.c
         src/hashmap.c
         src/queue.c
