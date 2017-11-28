@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     while(1) {
         clientlen = sizeof(struct sockaddr_storage);
         connfd = Accept(listenfd, (SA*) &clientaddr, &clientlen);
-        enqueue(request_queue, (void*) connfd);
+        enqueue(request_queue, (void*) (intptr_t) connfd);
         printf("Enqueued : %d\n", connfd);
         printqueue(request_queue);
     }
@@ -95,13 +95,13 @@ void *thread(void* queue) {
     queue_t* q = (queue_t*) queue;
     Pthread_detach(pthread_self());
     while(1) {
-        int connfd = (int) dequeue(q);
+        int connfd = (int) (intptr_t) dequeue(q);
         printf("dequeued : %d\n", connfd);
         //waits until it can dequeue the element from the queue
         //Does the thing -
         request_header_t* req_header = (request_header_t*) malloc(sizeof(request_header_t));
         read(connfd, &req_header, sizeof(request_header_t));
-        printf((const char *) req_header->request_code);
+//        printf(req_header->request_code);
         // 1. Serve the request
         // 2. send s response to the client
         // 3. close the connection
@@ -182,14 +182,16 @@ int hashmap_test(int argc, char *argv[]) {
 
 int queue_test(int argc, char *argv[]) {
     queue_t* gh = create_queue();
-    int f = 99;
-    enqueue(gh,(void*) f);
-//    enqueue(gh,"2");
+    char* f1 = "shreenathrules";
+    int f2 = 90;
+    void* ff = &f2;
+    enqueue(gh, f1);
+    enqueue(gh, ff);
 //    enqueue(gh,"3");
 //    enqueue(gh,"4");
 //    printf("%s", (char *) dequeue(gh));
-    printf("%d", (int) dequeue(gh));
-//    printf("%s", (char *) dequeue(gh));
+    printf("\n%s\n",  (char*) dequeue(gh));
+    printf("\n%d\n", *(int*) dequeue(gh));
 //    printf("%s", (char *) dequeue(gh));
 //    printf("%s", (char *) dequeue(gh));
 //    enqueue(gh,"5");
@@ -211,7 +213,7 @@ void printqueue(queue_t* q) {
     queue_node_t *n = q->front;
     printf("Queue : \n");
     while(n!=NULL){
-        printf("%d\n", (int) n->item);
+        printf("%d\n", (int) (intptr_t) n->item);
         n=n->next;
     }
     printf("\n");

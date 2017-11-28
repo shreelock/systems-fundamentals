@@ -75,7 +75,7 @@ void *dequeue(queue_t *self) {
      */
     int* semval = malloc(sizeof(int));
     sem_getvalue(&self->items, semval);
-    printf("Value of items while dequeuing : %d", *semval);
+    printf("Count of items while dequeuing : %d\n", *semval);
     sem_wait(&self->items);             //Only if atleast an item is there.
     pthread_mutex_lock(&self->lock);
 
