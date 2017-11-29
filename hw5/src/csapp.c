@@ -233,3 +233,17 @@ void dns_error(char *msg) /* Obsolete gethostbyname error */
     fprintf(stderr, "%s\n", msg);
     exit(0);
 }
+
+
+void P(sem_t *sem)
+{
+    if (sem_wait(sem) < 0)
+        unix_error("P error");
+}
+
+void V(sem_t *sem)
+{
+    if (sem_post(sem) < 0)
+        unix_error("V error");
+}
+

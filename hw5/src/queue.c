@@ -1,6 +1,7 @@
 #include <errno.h>
 #include "queue.h"
 #include <stdio.h>
+#include <csapp.h>
 
 //TODO @1178 Because you are implementing a blocking queue, all operations should not return until they are completed.
 queue_t *create_queue(void) {
@@ -53,7 +54,7 @@ bool enqueue(queue_t *self, void *item) {
         self->rear->next = newnode;
 
     self->rear = newnode;
-    sem_post(&self->items);
+    V(&self->items);
 
     pthread_mutex_unlock(&self->lock);
     return true;
@@ -61,9 +62,8 @@ bool enqueue(queue_t *self, void *item) {
 
 void *dequeue(queue_t *self) {
 
-    queue_node_t *node = self->front;
 
-    if(node==NULL) {
+    if(self->invalid==true) {
         errno = EINVAL;
         return NULL;
     }
@@ -73,11 +73,10 @@ void *dequeue(queue_t *self) {
      * 2. we grab the control of the queue, 3. update the item count, then
      * 4. lose the control of the queue.
      */
-    int* semval = malloc(sizeof(int));
-    sem_getvalue(&self->items, semval);
-    printf("Count of items while dequeuing : %d\n", *semval);
-    sem_wait(&self->items);             //Only if atleast an item is there.
+    P(&self->items);             //Only if atleast an item is there.
     pthread_mutex_lock(&self->lock);
+
+    queue_node_t *node = self->front;
 
     if(self->front == self->rear){
         self->rear = NULL;
