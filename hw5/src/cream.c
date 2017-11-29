@@ -12,6 +12,8 @@ void *thread(void *queue) ;
 
 void printqueue(queue_t* q) ;
 
+void do_the_thing(int connfd);
+
 void queue_free_function1(void *item) {
     free(item);
 }
@@ -50,7 +52,7 @@ void print_help(){
 queue_t *request_queue;
 
 int main(int argc, char *argv[]) {
-    long NUM_WORKERS=1;//, MAX_ENTRIES;
+    long NUM_WORKERS, MAX_ENTRIES;
     char *PORT_NUMBER = 0;
     // ------------------------------------------------
     int listenfd, connfd;
@@ -67,46 +69,63 @@ int main(int argc, char *argv[]) {
             print_help();
             return EXIT_SUCCESS;
         }
-        NUM_WORKERS = 0;//atol(argv[1]);
+        NUM_WORKERS = atol(argv[1]);
         PORT_NUMBER = argv[2];
-        //MAX_ENTRIES = (long) argv[2];
+        MAX_ENTRIES = atol(argv[3]);
     }
-    //hashmap_t *hashmap = create_map((uint32_t) MAX_ENTRIES, jenkins_one_at_a_time_hash, (destructor_f) map_free_function2);
+    hashmap_t *hashmap = create_map((uint32_t) MAX_ENTRIES, jenkins_one_at_a_time_hash, (destructor_f) map_free_function2);
+
+    /* BS -Werrors for unused variables. */
+    int wi = hashmap->num_readers;
+    MAX_ENTRIES+=wi;
+    /* BS */
+
 
     listenfd = Open_listenfd(PORT_NUMBER);
     request_queue = create_queue();
 
 
     for(int i=0; i<NUM_WORKERS; i++)
-        Pthread_create(&tid, NULL, thread, &request_queue);
+        Pthread_create(&tid, NULL, thread, NULL);
 
     while(1) {
         clientlen = sizeof(struct sockaddr_storage);
         connfd = Accept(listenfd, (SA*) &clientaddr, &clientlen);
         enqueue(request_queue, (void*) (intptr_t) connfd);
-        printf("Enqueued : %d\n", connfd);
-        printqueue(request_queue);
+        printf("New Client enqueued on fd:%d\n", connfd);
+//        printqueue(request_queue);
     }
 
 
 }
 
-void *thread(void* queue) {
-    queue_t* q = (queue_t*) queue;
+void *thread(void* vargp) {
     Pthread_detach(pthread_self());
     while(1) {
-        int connfd = (int) (intptr_t) dequeue(q);
-        printf("dequeued : %d\n", connfd);
-        //waits until it can dequeue the element from the queue
-        //Does the thing -
-        request_header_t* req_header = (request_header_t*) malloc(sizeof(request_header_t));
-        read(connfd, &req_header, sizeof(request_header_t));
-//        printf(req_header->request_code);
-        // 1. Serve the request
-        // 2. send s response to the client
-        // 3. close the connection
+        int connfd = (int) (intptr_t) dequeue(request_queue);
+        do_the_thing(connfd);
         Close(connfd);
     }
+}
+
+void do_the_thing(int connfd){
+
+    rio_t rio;
+    request_header_t* req_header = (request_header_t*) malloc(sizeof(request_header_t));
+    size_t req_header_size = sizeof(request_header_t);
+    Rio_readinitb(&rio, connfd);
+    Rio_readlineb(&rio, req_header, req_header_size);
+
+    response_header_t* response_header = (response_header_t*) malloc(sizeof(response_header_t));
+    size_t response_header_size = sizeof(response_header_t);
+
+    char* response_string = "hello";
+    response_header->response_code = 200;
+    response_header->value_size = (uint32_t) strlen(response_string);
+
+    Rio_writen(connfd, response_header, response_header_size);
+    Rio_writen(connfd, response_string, strlen(response_string));
+
 }
 
 int hashmap_test(int argc, char *argv[]) {
@@ -180,25 +199,6 @@ int hashmap_test(int argc, char *argv[]) {
     exit(0);
 }
 
-int queue_test(int argc, char *argv[]) {
-    queue_t* gh = create_queue();
-    char* f1 = "shreenathrules";
-    int f2 = 90;
-    void* ff = &f2;
-    enqueue(gh, f1);
-    enqueue(gh, ff);
-//    enqueue(gh,"3");
-//    enqueue(gh,"4");
-//    printf("%s", (char *) dequeue(gh));
-    printf("\n%s\n",  (char*) dequeue(gh));
-    printf("\n%d\n", *(int*) dequeue(gh));
-//    printf("%s", (char *) dequeue(gh));
-//    printf("%s", (char *) dequeue(gh));
-//    enqueue(gh,"5");
-//    invalidate_queue(gh, queue_free_function1);
-    exit(0);
-}
-
 void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
@@ -210,6 +210,7 @@ void printhashmap(hashmap_t* hmap) {
 }
 
 void printqueue(queue_t* q) {
+    pthread_mutex_lock(&q->lock);
     queue_node_t *n = q->front;
     printf("Queue : \n");
     while(n!=NULL){
@@ -217,4 +218,5 @@ void printqueue(queue_t* q) {
         n=n->next;
     }
     printf("\n");
+    pthread_mutex_unlock(&q->lock);
 }
