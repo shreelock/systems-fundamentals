@@ -8,7 +8,7 @@
 
 void printhashmap(hashmap_t* hmap);
 
-void *thread(void *queue) ;
+void *thread(void *vargp) ;
 
 void printqueue(queue_t* q) ;
 
@@ -50,6 +50,7 @@ void print_help(){
 }
 /* Global Shared Queue */
 queue_t *request_queue;
+hashmap_t *global_hashmap;
 
 int main(int argc, char *argv[]) {
     long NUM_WORKERS, MAX_ENTRIES;
@@ -73,13 +74,8 @@ int main(int argc, char *argv[]) {
         PORT_NUMBER = argv[2];
         MAX_ENTRIES = atol(argv[3]);
     }
-    hashmap_t *hashmap = create_map((uint32_t) MAX_ENTRIES, jenkins_one_at_a_time_hash, (destructor_f) map_free_function2);
 
-    /* BS -Werrors for unused variables. */
-    int wi = hashmap->num_readers;
-    MAX_ENTRIES+=wi;
-    /* BS */
-
+    global_hashmap = create_map((uint32_t) MAX_ENTRIES, jenkins_one_at_a_time_hash, (destructor_f) map_free_function2);
 
     listenfd = Open_listenfd(PORT_NUMBER);
     request_queue = create_queue();
@@ -111,21 +107,103 @@ void *thread(void* vargp) {
 void do_the_thing(int connfd){
 
     rio_t rio;
-    request_header_t* req_header = (request_header_t*) malloc(sizeof(request_header_t));
-    size_t req_header_size = sizeof(request_header_t);
     Rio_readinitb(&rio, connfd);
-    Rio_readlineb(&rio, req_header, req_header_size);
 
-    response_header_t* response_header = (response_header_t*) malloc(sizeof(response_header_t));
-    size_t response_header_size = sizeof(response_header_t);
+    //Init-ing request related values
+    request_header_t* rq_header = (request_header_t*) calloc(sizeof(request_header_t), 1);
+    size_t rq_header_size = sizeof(request_header_t);
+
+    //Init-ing response related values
+    response_header_t* rs_header = (response_header_t*) calloc(sizeof(response_header_t), 1 );
+    size_t rs_header_size = sizeof(response_header_t);
+    rs_header->value_size = 0x0;
+
+    //Reading from the file descriptor
+    Rio_readlineb(&rio, &rq_header->request_code, rq_header_size);
+
+    //Eextracting values from the Request Header
+    uint8_t rq_code = rq_header->request_code;
+    uint32_t rq_key_size = rq_header->key_size;
+    uint32_t rq_val_size = rq_header->value_size;
+
+    // checking for correct values of key size and value sizes
+    if(!(rq_key_size<=MAX_KEY_SIZE
+         && rq_key_size>=MIN_KEY_SIZE)
+       || !(rq_val_size<=MAX_VALUE_SIZE
+            && rq_val_size>=MIN_VALUE_SIZE)) {
+
+        rs_header->response_code = BAD_REQUEST;
+        Rio_writen(connfd, rs_header, rs_header_size);
+        return;
+    }
+
+    //Now that key and value sizes are okay okay, we plan to save them
+//    map_key_t* rq_key = (map_key_t*) malloc(sizeof(map_key_t));
+//    rq_key->key_base = malloc(rq_key_size);
+//    rq_key->key_len = rq_key_size;
+
+//    map_val_t* rq_val = (map_val_t*) malloc(sizeof(map_val_t));
+//    rq_val->val_base = malloc(rq_val_size);
+//    rq_val->val_len = rq_val_size;
+
+    char* rq_key = (char*) calloc(rq_key_size, 1);
+    char* rq_val = (char*) calloc(rq_val_size, 1);
+
+    map_key_t key;
+    map_val_t val;
+
+    switch(rq_code) {
+        case (0x01):
+            // PUT request
+            // Read key and value from fd using key and value sizes
+            Rio_readlineb(&rio, rq_key, rq_key_size);
+            Rio_readlineb(&rio, rq_val, rq_val_size);
+            key = MAP_KEY(rq_key, rq_key_size);
+            val = MAP_VAL(rq_val, rq_val_size);
+            bool putresult = put(global_hashmap, key, val, false);
+            printhashmap(global_hashmap);
+            if(putresult) {
+                rs_header->response_code = OK;
+                Rio_writen(connfd, rs_header, rs_header_size);
+                return;
+            }
+            break;
+        case (0x02):
+            // GET request
+            // Only read key from fd.
+            Rio_readlineb(&rio, rq_key, rq_key_size);
+            key = MAP_KEY(rq_key, rq_key_size);
+            val = get(global_hashmap, key);
+            if(val.val_base != NULL) {
+                rs_header->response_code = OK;
+                Rio_writen(connfd, rs_header, rs_header_size);
+                Rio_writen(connfd, val.val_base, sizeof(val.val_base));
+                return;
+            } else {
+                rs_header->response_code = NOT_FOUND;
+                Rio_writen(connfd, rs_header, rs_header_size);
+            }
+            break;
+        case (0x04):
+            //EVICT request
+            break;
+        case (0x08):
+            //CLEAR request
+            break;
+        default:
+            //Bad Request
+            rs_header->response_code = UNSUPPORTED;
+            Rio_writen(connfd, rs_header, rs_header_size);
+            return;
+    }
 
     char* response_string = "hello";
-    response_header->response_code = 200;
-    response_header->value_size = (uint32_t) strlen(response_string);
+    rs_header->response_code = 200;
+    rs_header->value_size = (uint32_t) strlen(response_string);
 
-    Rio_writen(connfd, response_header, response_header_size);
+    Rio_writen(connfd, rs_header, rs_header_size);
     Rio_writen(connfd, response_string, strlen(response_string));
-
+    return;
 }
 
 int hashmap_test(int argc, char *argv[]) {
