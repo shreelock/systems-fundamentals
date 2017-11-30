@@ -116,24 +116,12 @@ void do_the_thing(int connfd){
     rs_header->value_size = 0x0;
 
     //Reading from the file descriptor
-    read(connfd, rq_header, rq_header_size);
+    Rio_readn(connfd, rq_header, rq_header_size);
 
     //Eextracting values from the Request Header
     uint8_t rq_code = rq_header->request_code;
     uint32_t rq_key_size = rq_header->key_size;
     uint32_t rq_val_size = rq_header->value_size;
-
-    // checking for correct values of key size and value sizes
-    if(!(rq_key_size<=MAX_KEY_SIZE
-         && rq_key_size>=MIN_KEY_SIZE)
-       || !(rq_val_size<=MAX_VALUE_SIZE
-            && rq_val_size>=MIN_VALUE_SIZE)) {
-
-        rs_header->response_code = BAD_REQUEST;
-        write(connfd, rs_header, rs_header_size);
-        return;
-    }
-
 
     char* rq_key = (char*) calloc(rq_key_size, 1);
     char* rq_val = (char*) calloc(rq_val_size, 1);
@@ -144,14 +132,30 @@ void do_the_thing(int connfd){
     switch(rq_code) {
         case (0x01):
             // PUT request
+            // key and value size check
+            if(!(rq_key_size<=MAX_KEY_SIZE
+                 && rq_key_size>=MIN_KEY_SIZE)
+               || !(rq_val_size<=MAX_VALUE_SIZE
+                    && rq_val_size>=MIN_VALUE_SIZE)) {
+
+                rs_header->response_code = BAD_REQUEST;
+                write(connfd, rs_header, rs_header_size);
+                return;
+            }
             // Read key and value from fd using key and value sizes
-            read(connfd, rq_key, rq_key_size);
-            read(connfd, rq_val, rq_val_size);
+            Rio_readn(connfd, rq_key, rq_key_size);
+            Rio_readn(connfd, rq_val, rq_val_size);
+
+            // create key and values
             key = MAP_KEY(rq_key, rq_key_size);
             val = MAP_VAL(rq_val, rq_val_size);
-            bool putresult = put(global_hashmap, key, val, false);
+
+            // do the operations
+            bool put_result = put(global_hashmap, key, val, false);
             printhashmap(global_hashmap);
-            if(putresult) {
+
+            // output stuff
+            if(put_result) {
                 rs_header->response_code = OK;
                 Rio_writen(connfd, rs_header, rs_header_size);
                 return;
@@ -159,14 +163,29 @@ void do_the_thing(int connfd){
             break;
         case (0x02):
             // GET request
-            // Only read key from fd.
-            read(connfd, rq_key, rq_key_size);
+            // Key check
+            if(!(rq_key_size<=MAX_KEY_SIZE
+                 && rq_key_size>=MIN_KEY_SIZE)) {
+                rs_header->response_code = BAD_REQUEST;
+                write(connfd, rs_header, rs_header_size);
+                return;
+            }
+
+            // Read Key
+            Rio_readn(connfd, rq_key, rq_key_size);
+
+            // Create Key
             key = MAP_KEY(rq_key, rq_key_size);
+
+            // Do operation
             val = get(global_hashmap, key);
+
+            // Output stuff
             if(val.val_base != NULL) {
                 rs_header->response_code = OK;
-                write(connfd, rs_header, rs_header_size);
-                write(connfd, val.val_base, sizeof(val.val_base));
+                rs_header->value_size = (uint32_t) val.val_len;
+                Rio_writen(connfd, rs_header, rs_header_size);
+                Rio_writen(connfd, val.val_base, sizeof(val.val_base));
                 return;
             } else {
                 rs_header->response_code = NOT_FOUND;
@@ -174,10 +193,40 @@ void do_the_thing(int connfd){
             }
             break;
         case (0x04):
-            //EVICT request
+            // EVICT request
+            // Only Key check
+            if(!(rq_key_size<=MAX_KEY_SIZE
+                 && rq_key_size>=MIN_KEY_SIZE)) {
+                rs_header->response_code = BAD_REQUEST;
+                write(connfd, rs_header, rs_header_size);
+                return;
+            }
+
+            // Read key
+            Rio_readn(connfd, rq_key, rq_key_size);
+
+            // Create Key
+            key = MAP_KEY(rq_key, rq_key_size);
+
+            // Do operation
+            delete(global_hashmap, key);
+            printhashmap(global_hashmap);
+
+            // write outputs
+            // Send OK at all steps
+            rs_header->response_code = OK;
+            Rio_writen(connfd, rs_header, rs_header_size);
             break;
         case (0x08):
             //CLEAR request
+            // No key and value size check
+            // do the operations
+            clear_map(global_hashmap);
+            printhashmap(global_hashmap);
+
+            // output stuff
+            rs_header->response_code = OK;
+            Rio_writen(connfd, rs_header, rs_header_size);
             break;
         default:
             //Bad Request
@@ -185,14 +234,6 @@ void do_the_thing(int connfd){
             Rio_writen(connfd, rs_header, rs_header_size);
             return;
     }
-
-    char* response_string = "hello";
-    rs_header->response_code = 200;
-    rs_header->value_size = (uint32_t) strlen(response_string);
-
-    Rio_writen(connfd, rs_header, rs_header_size);
-    Rio_writen(connfd, response_string, strlen(response_string));
-    return;
 }
 
 int hashmap_test(int argc, char *argv[]) {
