@@ -106,9 +106,6 @@ void *thread(void* vargp) {
 
 void do_the_thing(int connfd){
 
-    rio_t rio;
-    Rio_readinitb(&rio, connfd);
-
     //Init-ing request related values
     request_header_t* rq_header = (request_header_t*) calloc(sizeof(request_header_t), 1);
     size_t rq_header_size = sizeof(request_header_t);
@@ -119,7 +116,7 @@ void do_the_thing(int connfd){
     rs_header->value_size = 0x0;
 
     //Reading from the file descriptor
-    Rio_readlineb(&rio, &rq_header->request_code, rq_header_size);
+    read(connfd, rq_header, rq_header_size);
 
     //Eextracting values from the Request Header
     uint8_t rq_code = rq_header->request_code;
@@ -133,18 +130,10 @@ void do_the_thing(int connfd){
             && rq_val_size>=MIN_VALUE_SIZE)) {
 
         rs_header->response_code = BAD_REQUEST;
-        Rio_writen(connfd, rs_header, rs_header_size);
+        write(connfd, rs_header, rs_header_size);
         return;
     }
 
-    //Now that key and value sizes are okay okay, we plan to save them
-//    map_key_t* rq_key = (map_key_t*) malloc(sizeof(map_key_t));
-//    rq_key->key_base = malloc(rq_key_size);
-//    rq_key->key_len = rq_key_size;
-
-//    map_val_t* rq_val = (map_val_t*) malloc(sizeof(map_val_t));
-//    rq_val->val_base = malloc(rq_val_size);
-//    rq_val->val_len = rq_val_size;
 
     char* rq_key = (char*) calloc(rq_key_size, 1);
     char* rq_val = (char*) calloc(rq_val_size, 1);
@@ -156,8 +145,8 @@ void do_the_thing(int connfd){
         case (0x01):
             // PUT request
             // Read key and value from fd using key and value sizes
-            Rio_readlineb(&rio, rq_key, rq_key_size);
-            Rio_readlineb(&rio, rq_val, rq_val_size);
+            read(connfd, rq_key, rq_key_size);
+            read(connfd, rq_val, rq_val_size);
             key = MAP_KEY(rq_key, rq_key_size);
             val = MAP_VAL(rq_val, rq_val_size);
             bool putresult = put(global_hashmap, key, val, false);
@@ -171,13 +160,13 @@ void do_the_thing(int connfd){
         case (0x02):
             // GET request
             // Only read key from fd.
-            Rio_readlineb(&rio, rq_key, rq_key_size);
+            read(connfd, rq_key, rq_key_size);
             key = MAP_KEY(rq_key, rq_key_size);
             val = get(global_hashmap, key);
             if(val.val_base != NULL) {
                 rs_header->response_code = OK;
-                Rio_writen(connfd, rs_header, rs_header_size);
-                Rio_writen(connfd, val.val_base, sizeof(val.val_base));
+                write(connfd, rs_header, rs_header_size);
+                write(connfd, val.val_base, sizeof(val.val_base));
                 return;
             } else {
                 rs_header->response_code = NOT_FOUND;
