@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <csapp.h>
+#include <extracredit.h>
 #include "cream.h"
 #include "utils.h"
 
@@ -176,6 +177,7 @@ void do_the_thing(int connfd){
 
             // Do operation
             val = get(global_hashmap, key);
+            printhashmap(global_hashmap);
 
             // Output stuff
             if(val.val_base != NULL) {
@@ -308,7 +310,7 @@ void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
         map_node_t* n = hmap->nodes + i;
-        printf("%s:%s\n", (char*) n->key.key_base, (char*) n->val.val_base);
+        printf("%s:%s:%ld\n", (char*) n->key.key_base, (char*) n->val.val_base, n->age);
     }
     printf("%s\n", strerror(errno));
     printf("\n");

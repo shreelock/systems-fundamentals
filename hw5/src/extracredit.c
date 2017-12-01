@@ -1,10 +1,13 @@
 #include <errno.h>
 #include <memory.h>
+#include <extracredit.h>
 #include "utils.h"
 
 #define MAP_KEY(base, len) (map_key_t) {.key_base = base, .key_len = len}
 #define MAP_VAL(base, len) (map_val_t) {.val_base = base, .val_len = len}
 #define MAP_NODE(key_arg, val_arg, tombstone_arg) (map_node_t) {.key = key_arg, .val = val_arg, .tombstone = tombstone_arg}
+
+void make_everyone_old_by_one(hashmap_t *self) ;
 
 hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f destroy_function) {
     struct hashmap_t *hmap = (hashmap_t*) calloc(1, sizeof(hashmap_t));
@@ -61,10 +64,17 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
                 // we have to evict it first, then overwrite
                 self->destroy_function(foundnode->key, foundnode->val);
             }
+            //increase the ages of all non null nodes, if this node isn't MRU.
+            if(foundnode->age!=-1)
+                make_everyone_old_by_one(self);
+
             //overwriting the index value
             foundnode->key = ikey;
             foundnode->val = ival;
             foundnode->tombstone = false;
+
+            // making this item the most recently used
+            foundnode->age = -1;
 
             pthread_mutex_unlock(&self->write_lock);
             return true;
@@ -79,9 +89,16 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
 
     // This means we found an empty slot.
     if(skey.key_base==NULL) {
+        // make everyone old by one
+        if(foundnode->age != -1)
+            make_everyone_old_by_one(self);
+
         foundnode->key = ikey;
         foundnode->val = ival;
         foundnode->tombstone = false;
+
+        // mark this node MRU
+        foundnode->age = -1;
         self->size++;
 
         pthread_mutex_unlock(&self->write_lock);
@@ -89,8 +106,15 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
     }
     // if keys are same, update.
     else if(areKeysSame(skey, ikey)) {
+        // make everyone old by one
+        if (foundnode->age != -1)
+            make_everyone_old_by_one(self);
+
         foundnode->val = ival;
         foundnode->tombstone = false;
+
+        // mark this node MRU
+        foundnode->age = -1;
 
         pthread_mutex_unlock(&self->write_lock);
         return true;
@@ -107,8 +131,15 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
 
             //If keys are same for some next index, overwrite.
             if(areKeysSame(tkey, ikey)) {
+                //make old
+                if (node->age != -1)
+                    make_everyone_old_by_one(self);
+
                 node->val = ival;
                 node->tombstone=false;
+
+                //set MRU
+                node->age = -1;
 
                 pthread_mutex_unlock(&self->write_lock);
                 return true;
@@ -117,9 +148,17 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
                 // then we found an empty space in the later spaces and
                 // we are assigning it to the key
             else if (tkey.key_base == NULL) {
+                //make old
+                if(node->age != -1)
+                    make_everyone_old_by_one(self);
+
                 node->key = ikey;
                 node->val = ival;
                 node->tombstone=false;
+
+                //make MRU
+                node->age = -1;
+
                 self->size++;
 
                 pthread_mutex_unlock(&self->write_lock);
@@ -159,7 +198,13 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     // if keys are same, check if val is not null and return accordingly.
     if(areKeysSame(skey, ikey)) {
         if(sval.val_base != NULL) {
+            //make old
+            if(foundnode->age != -1)
+                make_everyone_old_by_one(self);
+            //make MRU
+            foundnode->age = -1;
 
+            // We found the node, if no reader is left, leave the write lock
             pthread_mutex_lock(&self->fields_lock);
             self->num_readers--;
             if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
@@ -191,7 +236,13 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
             //If keys are same, check if val is not null and return accordingly.
             if(areKeysSame(tkey, ikey)) {
                 if(tval.val_base!=NULL) {
+                    //make old
+                    if(foundnode->age != -1)
+                        make_everyone_old_by_one(self);
+                    //make MRU
+                    foundnode->age = -1;
 
+                    // We found the node, if no reader is left, leave the write lock
                     pthread_mutex_lock(&self->fields_lock);
                     self->num_readers--;
                     if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
@@ -247,6 +298,7 @@ map_node_t delete(hashmap_t *self, map_key_t ikey) {
             node->key = MAP_KEY(NULL, 0);
             node->val = MAP_VAL(NULL, 0);
             node->tombstone = true;
+            node->age = 0;
             self->size--;
 
             pthread_mutex_unlock(&self->write_lock);
@@ -273,6 +325,7 @@ bool clear_map(hashmap_t *self) {
         node->key = MAP_KEY(NULL, 0);
         node->val = MAP_VAL(NULL, 0);
         node->tombstone = false;
+        node->age = 0;
     }
     self->size = 0;
 
@@ -299,4 +352,34 @@ bool invalidate_map(hashmap_t *self) {
 
     pthread_mutex_unlock(&self->write_lock);
     return true;
+}
+
+int find_idx_of_LRU_elem(hashmap_t* self) {
+    // will always be called with mutex locked, so no need of mutex management
+    int max_age_idx = 0;
+    long max_age = -2;
+    for (int i=0; i<self->capacity; i++) {
+        map_node_t* node = self->nodes + i;
+        if(node->key.key_base !=NULL && node->tombstone == false){
+            if (node->age > max_age){
+                max_age_idx = i;
+                max_age = node->age;
+            }
+        }
+    }
+    return max_age_idx;
+}
+
+void make_everyone_old_by_one(hashmap_t *self) {
+    if(self==NULL || self->invalid == true){
+        errno = EINVAL;
+        return;
+    }
+    // will always be called with mutex locked, so no need of mutex management
+    for (int i=0; i<self->capacity; i++) {
+        map_node_t* node = self->nodes + i;
+        if(node->key.key_base !=NULL && node->tombstone == false){
+            node->age = node->age + 1;
+        }
+    }
 }
