@@ -269,11 +269,10 @@ bool clear_map(hashmap_t *self) {
         map_node_t* node = self->nodes + i;
         if(node->key.key_base !=NULL && node->tombstone == false){
             self->destroy_function(node->key, node->val);
-        } else {
-            node->key = MAP_KEY(NULL, 0);
-            node->val = MAP_VAL(NULL, 0);
-            node->tombstone = false;
         }
+        node->key = MAP_KEY(NULL, 0);
+        node->val = MAP_VAL(NULL, 0);
+        node->tombstone = false;
     }
     self->size = 0;
 

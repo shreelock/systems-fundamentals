@@ -1,6 +1,5 @@
 #include <errno.h>
 #include "queue.h"
-#include <stdio.h>
 #include <csapp.h>
 
 //TODO @1178 Because you are implementing a blocking queue, all operations should not return until they are completed.
@@ -16,7 +15,7 @@ queue_t *create_queue(void) {
 
 bool invalidate_queue(queue_t *self, item_destructor_f destroy_function) {
     //https://computing.llnl.gov/tutorials/pthreads/
-    if(destroy_function==NULL || self==NULL) {
+    if(destroy_function==NULL || self==NULL || self->invalid == true) {
         errno = EINVAL;
         return false;
     }
@@ -37,6 +36,12 @@ bool invalidate_queue(queue_t *self, item_destructor_f destroy_function) {
 }
 
 bool enqueue(queue_t *self, void *item) {
+
+    if( self==NULL || self->invalid == true || item==NULL ) {
+        errno = EINVAL;
+        return false;
+    }
+
     queue_node_t* newnode = calloc(1, sizeof(queue_node_t));
     newnode->item = item;
     newnode->next = NULL;
@@ -63,7 +68,7 @@ bool enqueue(queue_t *self, void *item) {
 void *dequeue(queue_t *self) {
 
 
-    if(self->invalid==true) {
+    if(self == NULL || self->invalid==true) {
         errno = EINVAL;
         return NULL;
     }

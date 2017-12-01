@@ -14,10 +14,6 @@ void printqueue(queue_t* q) ;
 
 void do_the_thing(int connfd);
 
-void queue_free_function1(void *item) {
-    free(item);
-}
-
 uint32_t jenkins_hash2(map_key_t map_key) {
     const uint8_t *key = map_key.key_base;
     size_t length = map_key.key_len;
@@ -151,7 +147,8 @@ void do_the_thing(int connfd){
             val = MAP_VAL(rq_val, rq_val_size);
 
             // do the operations
-            bool put_result = put(global_hashmap, key, val, false);
+            bool put_result = put(global_hashmap, key, val, true);
+            // ^^ we are using force=true, because we want to evict the key if there's no space
             printhashmap(global_hashmap);
 
             // output stuff
