@@ -29,6 +29,7 @@ typedef void (*destructor_f)(map_key_t, map_val_t);
 typedef struct map_node_t {
     map_key_t key;
     map_val_t val;
+    long age;
     bool tombstone;
 } map_node_t;
 
