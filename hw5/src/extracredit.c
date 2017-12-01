@@ -9,6 +9,10 @@
 
 void make_everyone_old_by_one(hashmap_t *self) ;
 
+int find_idx_of_LRU_elem(hashmap_t* self) ;
+
+int get_node_index(hashmap_t *self, map_key_t ikey) ;
+
 hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f destroy_function) {
     struct hashmap_t *hmap = (hashmap_t*) calloc(1, sizeof(hashmap_t));
     hmap->nodes = (map_node_t*)calloc(capacity, sizeof(map_node_t));
@@ -57,8 +61,22 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
     map_key_t skey = foundnode->key;
 
     // If we reached capacity
+    int searched_index = 0;
     if(self->capacity == self->size){
         if(force == true) {
+            if(areKeysSame(skey, ikey)) {
+                // We do not change anything. The value will be replaced.
+            } else if ( (searched_index = get_node_index(self, ikey)) != -1) {
+                // We search for the node everywhere else
+                index  = searched_index;
+            } else {
+                // now we are using the LRU element.
+                index = find_idx_of_LRU_elem(self);
+            }
+
+            foundnode = self->nodes + index;
+
+            //regular stuff
             if(foundnode->tombstone == false) {
                 // there is a non dead node at this position
                 // we have to evict it first, then overwrite
@@ -224,7 +242,8 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
         // Else, check for consecutive locations in the hashmap.
     else {
         int oldindex = index;
-        while (index++ % self->capacity != oldindex){
+        index++;
+        while ((index = index%self->capacity) != oldindex){
             map_node_t *node = self->nodes + index;
             // do nothing if we found a tombstone on a node.
             if(node->tombstone)
@@ -269,6 +288,7 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
                 pthread_mutex_unlock(&self->fields_lock);
                 return MAP_VAL(NULL, 0);
             }
+            index++;
         }
         // we traversed the whole array for that key, and it was no where to be
         // found. return the null value.
@@ -382,4 +402,52 @@ void make_everyone_old_by_one(hashmap_t *self) {
             node->age = node->age + 1;
         }
     }
+}
+
+int get_node_index(hashmap_t *self, map_key_t ikey) {
+    //We dont need EINVAL check
+    // We dont need mutex checks as well. Since we are doing it under them
+
+    int index = get_index(self, ikey);
+    map_node_t *foundnode = self->nodes + index;
+    map_key_t skey = foundnode->key;
+    map_val_t sval = foundnode->val;
+    // if keys are same, check if val is not null and return accordingly.
+    if(areKeysSame(skey, ikey)) {
+        if(sval.val_base != NULL)
+            return index;
+        else
+            return -1;
+    }
+        // Else, check for consecutive locations in the hashmap.
+    else {
+        int oldindex = index;
+        index++;
+        while ((index = index%self->capacity) != oldindex){
+            map_node_t *node = self->nodes + index;
+            // do nothing if we found a tombstone on a node.
+            if(node->tombstone)
+                continue;
+
+            map_key_t tkey = node->key;
+            map_val_t tval = node->val;
+
+            //If keys are same, check if val is not null and return accordingly.
+            if(areKeysSame(tkey, ikey)) {
+                if(tval.val_base!=NULL)
+                    return index;
+                else
+                    return -1;
+            }
+                // Else if Key itself is null, i.e. no item is present,
+                // then we found an empty space in the later spaces and
+                // we couldn't find out requested key.
+            else if (tkey.key_base == NULL)
+                return -1;
+            index++;
+        }
+        // we traversed the whole array for that key, and it was no where to be
+        // found. return the null value.
+    }
+    return -1;
 }
