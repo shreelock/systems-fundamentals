@@ -13,6 +13,10 @@ int find_idx_of_LRU_elem(hashmap_t* self) ;
 
 int get_node_index(hashmap_t *self, map_key_t ikey) ;
 
+bool is_node_dead(map_node_t *node);
+
+void set_node_death_time(map_node_t *node) ;
+
 hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f destroy_function) {
     struct hashmap_t *hmap = (hashmap_t*) calloc(1, sizeof(hashmap_t));
     hmap->nodes = (map_node_t*)calloc(capacity, sizeof(map_node_t));
@@ -64,6 +68,7 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
     int searched_index = 0;
     if(self->capacity == self->size){
         if(force == true) {
+            // we are evicting something any way
             if(areKeysSame(skey, ikey)) {
                 // We do not change anything. The value will be replaced.
             } else if ( (searched_index = get_node_index(self, ikey)) != -1) {
@@ -91,6 +96,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
             foundnode->val = ival;
             foundnode->tombstone = false;
 
+            //set the time of death
+            set_node_death_time(foundnode);
+
             // making this item the most recently used
             foundnode->age = -1;
 
@@ -115,6 +123,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
         foundnode->val = ival;
         foundnode->tombstone = false;
 
+        //set the time of death
+        set_node_death_time(foundnode);
+
         // mark this node MRU
         foundnode->age = -1;
         self->size++;
@@ -133,6 +144,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
 
         // mark this node MRU
         foundnode->age = -1;
+
+        //set the time of death
+        set_node_death_time(foundnode);
 
         pthread_mutex_unlock(&self->write_lock);
         return true;
@@ -159,6 +173,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
                 //set MRU
                 node->age = -1;
 
+                //set the time of death
+                set_node_death_time(node);
+
                 pthread_mutex_unlock(&self->write_lock);
                 return true;
             }
@@ -176,6 +193,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
 
                 //make MRU
                 node->age = -1;
+
+                //set the time of death
+                set_node_death_time(node);
 
                 self->size++;
 
@@ -216,6 +236,33 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     // if keys are same, check if val is not null and return accordingly.
     if(areKeysSame(skey, ikey)) {
         if(sval.val_base != NULL) {
+
+            // check if the node is dead
+            if (is_node_dead(foundnode)) {
+
+                // evict node
+                // cant use delete(self, foundnode->key);, since it calls for its own writelock
+                foundnode->key = MAP_KEY(NULL, 0);
+                foundnode->val = MAP_VAL(NULL, 0);
+                foundnode->tombstone = true;
+                foundnode->age = 0;
+                foundnode->timeOfDeath = 0;
+                self->size--;
+
+                // We found the node, if no reader is left, leave the write lock
+                pthread_mutex_lock(&self->fields_lock);
+                self->num_readers--;
+                if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
+                pthread_mutex_unlock(&self->fields_lock);
+
+                //return Null
+                return MAP_VAL(NULL, 0);
+
+            } else {
+                //update the new time of death
+                set_node_death_time(foundnode);
+            }
+
             //make old
             if(foundnode->age != -1)
                 make_everyone_old_by_one(self);
@@ -246,7 +293,8 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
         while ((index = index%self->capacity) != oldindex){
             map_node_t *node = self->nodes + index;
             // do nothing if we found a tombstone on a node.
-            if(node->tombstone)
+            // ANDing timeofdeath cuz initially timeofdeath is zero
+            if(node->tombstone || (is_node_dead(node) && node->timeOfDeath > 0))
                 continue;
 
             map_key_t tkey = node->key;
@@ -260,6 +308,8 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
                         make_everyone_old_by_one(self);
                     //make MRU
                     foundnode->age = -1;
+
+                    set_node_death_time(foundnode);
 
                     // We found the node, if no reader is left, leave the write lock
                     pthread_mutex_lock(&self->fields_lock);
@@ -301,7 +351,6 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     return MAP_VAL(NULL, 0);
 }
 
-//TODO change the complexity to O(k) by adding get logic
 map_node_t delete(hashmap_t *self, map_key_t ikey) {
     if(self==NULL ||
        self->invalid == true ||
@@ -319,6 +368,7 @@ map_node_t delete(hashmap_t *self, map_key_t ikey) {
             node->val = MAP_VAL(NULL, 0);
             node->tombstone = true;
             node->age = 0;
+            node->timeOfDeath = 0;
             self->size--;
 
             pthread_mutex_unlock(&self->write_lock);
@@ -345,6 +395,7 @@ bool clear_map(hashmap_t *self) {
         node->key = MAP_KEY(NULL, 0);
         node->val = MAP_VAL(NULL, 0);
         node->tombstone = false;
+        node->timeOfDeath = 0;
         node->age = 0;
     }
     self->size = 0;
@@ -450,4 +501,16 @@ int get_node_index(hashmap_t *self, map_key_t ikey) {
         // found. return the null value.
     }
     return -1;
+}
+
+bool is_node_dead(map_node_t *node) {
+    time_t ltime;
+    ltime=time(NULL);
+    return node->timeOfDeath < ltime;
+}
+
+void set_node_death_time(map_node_t *node) {
+    time_t ltime;
+    ltime=time(NULL);
+    node->timeOfDeath = ltime + TTL;
 }

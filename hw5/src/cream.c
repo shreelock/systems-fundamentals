@@ -310,7 +310,7 @@ void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
         map_node_t* n = hmap->nodes + i;
-        printf("%s:%s:%ld\n", (char*) n->key.key_base, (char*) n->val.val_base, n->age);
+        printf("%s:%s:%ld:%d\n", (char*) n->key.key_base, (char*) n->val.val_base, n->age, (int) n->timeOfDeath);
     }
     printf("%s\n", strerror(errno));
     printf("\n");

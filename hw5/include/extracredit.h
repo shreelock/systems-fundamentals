@@ -30,6 +30,7 @@ typedef struct map_node_t {
     map_key_t key;
     map_val_t val;
     long age;
+    time_t timeOfDeath;
     bool tombstone;
 } map_node_t;
 

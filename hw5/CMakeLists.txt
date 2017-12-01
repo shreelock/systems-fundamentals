@@ -18,7 +18,7 @@ set(SOURCE_FILES
         src/cream.c
         src/csapp.c
         src/extracredit.c
-        src/hashmap.c
+#        src/hashmap.c
         src/queue.c
         src/utils.c
         tests/extracredit_tests.c
