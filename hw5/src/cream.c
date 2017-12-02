@@ -34,8 +34,12 @@ uint32_t jenkins_hash2(map_key_t map_key) {
 }
 
 void map_free_function2(map_key_t key, map_val_t val) {
-    free(key.key_base);
-    free(val.val_base);
+//    printf("\n%p:",val.val_base);
+//    printf("%p\n", key.key_base);
+    if(key.key_base != (void *) 0xe1) {
+        free(key.key_base);
+        free(val.val_base);
+    }
 }
 void print_help(){
     char* string = "./cream [-h] NUM_WORKERS PORT_NUMBER MAX_ENTRIES\n"
@@ -48,6 +52,8 @@ void print_help(){
 /* Global Shared Queue */
 queue_t *request_queue;
 hashmap_t *global_hashmap;
+
+bool is_this_node_dead(map_node_t *node);
 
 int main(int argc, char *argv[]) {
     long NUM_WORKERS, MAX_ENTRIES;
@@ -310,10 +316,22 @@ void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
         map_node_t* n = hmap->nodes + i;
-        printf("%s:%s:%ld:%d\n", (char*) n->key.key_base, (char*) n->val.val_base, n->age, (int) n->timeOfDeath);
+        printf("%s:%s:%ld:%d", (char*) n->key.key_base, (char*) n->val.val_base, n->age, (int) n->timeOfDeath);
+        if(n->tombstone==true)
+            printf("  <-tomb");
+        if(is_this_node_dead(n))
+            printf("  <-dead");
+        printf("\n");
     }
     printf("%s\n", strerror(errno));
     printf("\n");
+}
+
+bool is_this_node_dead(map_node_t *node) {
+    time_t ltime;
+    ltime=time(NULL);
+    // To avoid he situation where we consider non initialised nodes as dead
+    return node->timeOfDeath < ltime && node->timeOfDeath > 0;
 }
 
 void printqueue(queue_t* q) {
