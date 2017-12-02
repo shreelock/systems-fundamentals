@@ -62,13 +62,14 @@ int main(int argc, char *argv[]) {
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
     pthread_t tid;
+    // ---------signal management----------------------
+    signal(SIGPIPE, SIG_IGN);
     // ------------------------------------------------
-
     if(argc!=4){
         print_help();
         return EXIT_SUCCESS;
     } else {
-        if (strcmp(argv[0], "-h") == 0 || strcmp(argv[1], "-h") == 0 || strcmp(argv[2], "-h") == 0) {
+        if (strcmp(argv[0], "-h") == 0 || strcmp(argv[1], "-h") == 0 || strcmp(argv[2], "-h") == 0 || atol(argv[3])<1) {
             print_help();
             return EXIT_SUCCESS;
         }
