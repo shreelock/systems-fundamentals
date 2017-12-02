@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
         clientlen = sizeof(struct sockaddr_storage);
         connfd = Accept(listenfd, (SA*) &clientaddr, &clientlen);
         enqueue(request_queue, (void*) (intptr_t) connfd);
-        printf("New Client enqueued on fd:%d\n", connfd);
+//        printf("New Client enqueued on fd:%d\n", connfd);
 //        printqueue(request_queue);
     }
 
@@ -155,7 +155,7 @@ void do_the_thing(int connfd){
             // do the operations
             bool put_result = put(global_hashmap, key, val, true);
             // ^^ we are using force=true, because we want to evict the key if there's no space
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // output stuff
             if(put_result) {
@@ -182,7 +182,7 @@ void do_the_thing(int connfd){
 
             // Do operation
             val = get(global_hashmap, key);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // Output stuff
             if(val.val_base != NULL) {
@@ -214,7 +214,7 @@ void do_the_thing(int connfd){
 
             // Do operation
             delete(global_hashmap, key);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // write outputs
             // Send OK at all steps
@@ -226,7 +226,7 @@ void do_the_thing(int connfd){
             // No key and value size check
             // do the operations
             clear_map(global_hashmap);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // output stuff
             rs_header->response_code = OK;
