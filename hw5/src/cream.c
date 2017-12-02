@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <memory.h>
 #include <csapp.h>
-#include <extracredit.h>
 #include "cream.h"
 #include "utils.h"
 
@@ -91,7 +90,7 @@ int main(int argc, char *argv[]) {
         clientlen = sizeof(struct sockaddr_storage);
         connfd = Accept(listenfd, (SA*) &clientaddr, &clientlen);
         enqueue(request_queue, (void*) (intptr_t) connfd);
-        printf("New Client enqueued on fd:%d\n", connfd);
+//        printf("New Client enqueued on fd:%d\n", connfd);
 //        printqueue(request_queue);
     }
 
@@ -156,7 +155,7 @@ void do_the_thing(int connfd){
             // do the operations
             bool put_result = put(global_hashmap, key, val, true);
             // ^^ we are using force=true, because we want to evict the key if there's no space
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // output stuff
             if(put_result) {
@@ -183,7 +182,7 @@ void do_the_thing(int connfd){
 
             // Do operation
             val = get(global_hashmap, key);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // Output stuff
             if(val.val_base != NULL) {
@@ -215,7 +214,7 @@ void do_the_thing(int connfd){
 
             // Do operation
             delete(global_hashmap, key);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // write outputs
             // Send OK at all steps
@@ -227,7 +226,7 @@ void do_the_thing(int connfd){
             // No key and value size check
             // do the operations
             clear_map(global_hashmap);
-            printhashmap(global_hashmap);
+//            printhashmap(global_hashmap);
 
             // output stuff
             rs_header->response_code = OK;
@@ -316,22 +315,30 @@ void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
         map_node_t* n = hmap->nodes + i;
-        printf("%s:%s:%ld:%d", (char*) n->key.key_base, (char*) n->val.val_base, n->age, (int) n->timeOfDeath);
-        if(n->tombstone==true)
-            printf("  <-tomb");
-        if(is_this_node_dead(n))
-            printf("  <-dead");
-        printf("\n");
+        if(true) {
+            printf("%s:%s", (char *) n->key.key_base, (char *) n->val.val_base);
+            printf("\n");
+        } else {/*
+            printf("%s:%s:%ld:%d", (char *) n->key.key_base, (char *) n->val.val_base, n->age, (int) n->timeOfDeath);
+            if (n->tombstone == true)
+                printf("  <-tomb");
+            if (is_this_node_dead(n))
+                printf("  <-dead");
+            printf("\n");*/
+        }
     }
     printf("%s\n", strerror(errno));
     printf("\n");
 }
 
 bool is_this_node_dead(map_node_t *node) {
+    /*
     time_t ltime;
     ltime=time(NULL);
     // To avoid he situation where we consider non initialised nodes as dead
     return node->timeOfDeath < ltime && node->timeOfDeath > 0;
+     */
+    return true;
 }
 
 void printqueue(queue_t* q) {
