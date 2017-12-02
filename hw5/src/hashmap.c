@@ -8,6 +8,8 @@
 
 int get_node_index(hashmap_t *self, map_key_t ikey) ;
 
+void unlock_write_lock(hashmap_t *self) ;
+
 hashmap_t *create_map(uint32_t capacity, hash_func_f hash_function, destructor_f destroy_function) {
     struct hashmap_t *hmap = (hashmap_t*) calloc(1, sizeof(hashmap_t));
     hmap->nodes = (map_node_t*)calloc(capacity, sizeof(map_node_t));
@@ -35,33 +37,33 @@ int areKeysSame(map_key_t k1, map_key_t k2){
     return 0;
 }
 
-bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
+bool put(hashmap_t *self, map_key_t inkey, map_val_t inval, bool force) {
     if(self==NULL ||
        self->invalid == true ||
-       ikey.key_base == NULL ||
-       ikey.key_len == 0 ||
-       ival.val_base == NULL ||
-       ival.val_len == 0){
+       inkey.key_base == NULL ||
+       inkey.key_len == 0 ||
+       inval.val_base == NULL ||
+       inval.val_len == 0){
         errno = EINVAL;
         return false;
     }
 
     pthread_mutex_lock(&self->write_lock);
 
-    int index = get_index(self, ikey);
+    int index = get_index(self, inkey);
     if(self->capacity > self->size)
         force = false;
 
     map_node_t *foundnode = self->nodes + index;
-    map_key_t skey = foundnode->key;
+    map_key_t foundkey = foundnode->key;
 
     // If we reached capacity
     int searched_index = 0;
     if(self->capacity == self->size){
         if(force == true) {
-            if(areKeysSame(skey, ikey)) {
+            if(areKeysSame(foundkey, inkey)) {
                 // We do not change anything. The value will be replaced.
-            } else if ( (searched_index = get_node_index(self, ikey)) != -1) {
+            } else if ( (searched_index = get_node_index(self, inkey)) != -1) {
                 // We search for the node everywhere else
                 index  = searched_index;
             }
@@ -75,8 +77,8 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
                 self->destroy_function(foundnode->key, foundnode->val);
             }
             //overwriting the index value
-            foundnode->key = ikey;
-            foundnode->val = ival;
+            foundnode->key = inkey;
+            foundnode->val = inval;
             foundnode->tombstone = false;
 
             pthread_mutex_unlock(&self->write_lock);
@@ -91,9 +93,9 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
     }
 
     // This means we found an empty slot.
-    if(skey.key_base==NULL) {
-        foundnode->key = ikey;
-        foundnode->val = ival;
+    if(foundkey.key_base==NULL) {
+        foundnode->key = inkey;
+        foundnode->val = inval;
         foundnode->tombstone = false;
         self->size++;
 
@@ -101,8 +103,8 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
         return true;
     }
     // if keys are same, update.
-    else if(areKeysSame(skey, ikey)) {
-        foundnode->val = ival;
+    else if(areKeysSame(foundkey, inkey)) {
+        foundnode->val = inval;
         foundnode->tombstone = false;
 
         pthread_mutex_unlock(&self->write_lock);
@@ -115,26 +117,23 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
         index++;
         // We are making sure that we didnt reach the old location.
         while ((index = index%self->capacity) != oldindex){
-            map_node_t *node = self->nodes + index;
-            map_key_t tkey = node->key;
+            foundnode = self->nodes + index;
+            foundkey = foundnode->key;
 
-            //If keys are same for some next index, overwrite.
-            if(areKeysSame(tkey, ikey)) {
-                node->val = ival;
-                node->tombstone=false;
-
+            // This means we found an empty slot
+            // Works for tombstones as well
+            if(foundkey.key_base==NULL) {
+                foundnode->key = inkey;
+                foundnode->val = inval;
+                foundnode->tombstone = false; // We made the node ALIVE now
+                self->size++;
                 pthread_mutex_unlock(&self->write_lock);
                 return true;
             }
-                // Else if Key itself is null, i.e. no item is present,
-                // then we found an empty space in the later spaces and
-                // we are assigning it to the key
-            else if (tkey.key_base == NULL) {
-                node->key = ikey;
-                node->val = ival;
-                node->tombstone=false;
-                self->size++;
-
+                // if keys is not null and same, update.
+            else if(areKeysSame(foundkey, inkey)) {
+                foundnode->val = inval;
+                foundnode->tombstone = false;
                 pthread_mutex_unlock(&self->write_lock);
                 return true;
             }
@@ -147,90 +146,54 @@ bool put(hashmap_t *self, map_key_t ikey, map_val_t ival, bool force) {
     return false;
 }
 
-map_val_t get(hashmap_t *self, map_key_t ikey) {
+map_val_t get(hashmap_t *self, map_key_t inkey) {
     if(self==NULL ||
        self->invalid == true ||
-       ikey.key_base == NULL ||
-       ikey.key_len == 0){
+       inkey.key_base == NULL ||
+       inkey.key_len == 0){
         errno = EINVAL;
         return MAP_VAL(NULL, 0);
     }
 
     pthread_mutex_lock(&self->fields_lock);
-
     self->num_readers++;
     if(self->num_readers == 1) //First reader is in.
         pthread_mutex_lock(&self->write_lock);
-
     pthread_mutex_unlock(&self->fields_lock);
 
 
-    int index = get_index(self, ikey);
+    int index = get_index(self, inkey);
     map_node_t *foundnode = self->nodes + index;
-    map_key_t skey = foundnode->key;
-    map_val_t sval = foundnode->val;
+    map_key_t foundkey = foundnode->key;
+    map_val_t foundval = foundnode->val;
     // if keys are same, check if val is not null and return accordingly.
-    if(areKeysSame(skey, ikey)) {
-        if(sval.val_base != NULL) {
-
+    if(areKeysSame(foundkey, inkey)) {
             // We found the node, if no reader is left, leave the write lock
-            pthread_mutex_lock(&self->fields_lock);
-            self->num_readers--;
-            if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-            pthread_mutex_unlock(&self->fields_lock);
-
-            return MAP_VAL(sval.val_base, sval.val_len);
-        }
-        else {
-
-            pthread_mutex_lock(&self->fields_lock);
-            self->num_readers--;
-            if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-            pthread_mutex_unlock(&self->fields_lock);
-            return MAP_VAL(NULL, 0);
-        }
+            unlock_write_lock(self);
+            return MAP_VAL(foundval.val_base, foundval.val_len);
     }
         // Else, check for consecutive locations in the hashmap.
     else {
         int oldindex = index;
         index++;
         while ((index = index%self->capacity) != oldindex){
-            map_node_t *node = self->nodes + index;
-            // do nothing if we found a tombstone on a node.
-            if(node->tombstone)
-                continue;
-
-            map_key_t tkey = node->key;
-            map_val_t tval = node->val;
+            foundnode = self->nodes + index;
+            foundkey = foundnode->key;
+            foundval = foundnode->val;
 
             //If keys are same, check if val is not null and return accordingly.
-            if(areKeysSame(tkey, ikey)) {
-                if(tval.val_base!=NULL) {
-
-                    pthread_mutex_lock(&self->fields_lock);
-                    self->num_readers--;
-                    if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-                    pthread_mutex_unlock(&self->fields_lock);
-                    return MAP_VAL(tval.val_base, tval.val_len);
-                }
-                else {
-
-                    pthread_mutex_lock(&self->fields_lock);
-                    self->num_readers--;
-                    if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-                    pthread_mutex_unlock(&self->fields_lock);
-                    return MAP_VAL(NULL, 0);
-                }
+            if(areKeysSame(foundkey, inkey)) {
+                    unlock_write_lock(self);
+                    return MAP_VAL(foundval.val_base, foundval.val_len);
+            }
+            else if (foundnode->tombstone == true) {
+                // Move along, go to next step fro increasing index.
             }
                 // Else if Key itself is null, i.e. no item is present,
                 // then we found an empty space in the later spaces and
                 // we couldn't find out requested key.
-            else if (tkey.key_base == NULL) {
-
-                pthread_mutex_lock(&self->fields_lock);
-                self->num_readers--;
-                if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-                pthread_mutex_unlock(&self->fields_lock);
+            else if (foundkey.key_base == NULL) {
+                unlock_write_lock(self);
                 return MAP_VAL(NULL, 0);
             }
             index++;
@@ -238,25 +201,20 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
         // we traversed the whole array for that key, and it was no where to be
         // found. return the null value.
     }
-
-    pthread_mutex_lock(&self->fields_lock);
-    self->num_readers--;
-    if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
-    pthread_mutex_unlock(&self->fields_lock);
+    unlock_write_lock(self);
     return MAP_VAL(NULL, 0);
 }
 
-//TODO change the complexity to O(k) by adding get logic
-map_node_t delete(hashmap_t *self, map_key_t ikey) {
+map_node_t delete(hashmap_t *self, map_key_t inkey) {
     if(self==NULL ||
        self->invalid == true ||
-       ikey.key_base == NULL ||
-       ikey.key_len == 0){
+       inkey.key_base == NULL ||
+       inkey.key_len == 0){
         errno = EINVAL;
         return MAP_NODE(MAP_KEY(NULL, 0), MAP_VAL(NULL, 0), false);
     }
     pthread_mutex_lock(&self->write_lock);
-    int searched_index = get_node_index(self, ikey);
+    int searched_index = get_node_index(self, inkey);
     if (searched_index != -1) {
         map_node_t* node = self->nodes + searched_index;
         map_node_t nodetoreturn = MAP_NODE(node->key, node->val, true);
@@ -271,6 +229,13 @@ map_node_t delete(hashmap_t *self, map_key_t ikey) {
 
     pthread_mutex_unlock(&self->write_lock);
     return MAP_NODE(MAP_KEY(NULL, 0), MAP_VAL(NULL, 0), false);
+}
+
+void unlock_write_lock(hashmap_t *self) {
+    pthread_mutex_lock(&self->fields_lock);
+    self->num_readers--;
+    if(self->num_readers == 0) pthread_mutex_unlock(&self->write_lock);
+    pthread_mutex_unlock(&self->fields_lock);
 }
 
 bool clear_map(hashmap_t *self) {
@@ -316,46 +281,39 @@ bool invalidate_map(hashmap_t *self) {
     return true;
 }
 
-int get_node_index(hashmap_t *self, map_key_t ikey) {
+int get_node_index(hashmap_t *self, map_key_t inkey) {
     //We dont need EINVAL check
     // We dont need mutex checks as well. Since we are doing it under them
 
-    int index = get_index(self, ikey);
+    int index = get_index(self, inkey);
     map_node_t *foundnode = self->nodes + index;
-    map_key_t skey = foundnode->key;
-    map_val_t sval = foundnode->val;
+    map_key_t foundkey = foundnode->key;
     // if keys are same, check if val is not null and return accordingly.
-    if(areKeysSame(skey, ikey)) {
-        if(sval.val_base != NULL)
-            return index;
-        else
-            return -1;
+    if(areKeysSame(foundkey, inkey)) {
+        return index;
     }
         // Else, check for consecutive locations in the hashmap.
     else {
         int oldindex = index;
         index++;
         while ((index = index%self->capacity) != oldindex){
-            map_node_t *node = self->nodes + index;
-            // do nothing if we found a tombstone on a node.
-            if(node->tombstone)
-                continue;
+            foundnode = self->nodes + index;
+            foundkey = foundnode->key;
 
-            map_key_t tkey = node->key;
-            map_val_t tval = node->val;
-
-            //If keys are same, check if val is not null and return accordingly.
-            if(areKeysSame(tkey, ikey)) {
-                if(tval.val_base!=NULL)
-                    return index;
-                else
-                    return -1;
+            //If keys are same, return accordingly.
+            if(areKeysSame(foundkey, inkey)) {
+                // check if the wanted node is dead, then return Null
+                return index;
             }
-                // Else if Key itself is null, i.e. no item is present,
+            else if (foundnode->tombstone == true) {
+                // Move along, go to next step by increasing index.
+            }
+                // Now node is not a tombstone and value is NULL
                 // then we found an empty space in the later spaces and
                 // we couldn't find out requested key.
-            else if (tkey.key_base == NULL)
+            else if (foundkey.key_base == NULL) {
                 return -1;
+            }
             index++;
         }
         // we traversed the whole array for that key, and it was no where to be

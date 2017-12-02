@@ -11,7 +11,7 @@ void make_everyone_old_by_one(hashmap_t *self) ;
 
 int find_idx_of_LRU_elem(hashmap_t* self) ;
 
-int get_node_index(hashmap_t *self, map_key_t ikey) ;
+int get_node_index(hashmap_t *self, map_key_t inkey) ;
 
 bool is_node_dead(map_node_t *node);
 
@@ -48,13 +48,13 @@ int areKeysSame(map_key_t k1, map_key_t k2){
     return 0;
 }
 
-bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
+bool put(hashmap_t *self, map_key_t inkey, map_val_t inval, bool force) {
     if(self==NULL ||
        self->invalid == true ||
        inkey.key_base == NULL ||
        inkey.key_len == 0 ||
-       ival.val_base == NULL ||
-       ival.val_len == 0){
+       inval.val_base == NULL ||
+       inval.val_len == 0){
         errno = EINVAL;
         return false;
     }
@@ -100,7 +100,7 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
 
             //overwriting the index value
             foundnode->key = inkey;
-            foundnode->val = ival;
+            foundnode->val = inval;
             foundnode->tombstone = false;
 
             //set the time of death
@@ -128,7 +128,7 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
             make_everyone_old_by_one(self);
 
         foundnode->key = inkey;
-        foundnode->val = ival;
+        foundnode->val = inval;
         foundnode->tombstone = false; // We made the node ALIVE now
         // Dont increase size if it is dead node.
         if (!is_node_dead(foundnode))
@@ -150,7 +150,7 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
         if (foundnode->age != -1)
             make_everyone_old_by_one(self);
 
-        foundnode->val = ival;
+        foundnode->val = inval;
         foundnode->tombstone = false;
 
         // mark this node MRU
@@ -180,7 +180,7 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
                     make_everyone_old_by_one(self);
 
                 foundnode->key = inkey;
-                foundnode->val = ival;
+                foundnode->val = inval;
                 foundnode->tombstone = false; // We made the node ALIVE now
                 //Only update the size if this was a dead node
                 if(!is_node_dead(foundnode))
@@ -201,7 +201,7 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
                 if (foundnode->age != -1)
                     make_everyone_old_by_one(self);
 
-                foundnode->val = ival;
+                foundnode->val = inval;
                 foundnode->tombstone = false;
 
                 // mark this node MRU
@@ -222,30 +222,28 @@ bool put(hashmap_t *self, map_key_t inkey, map_val_t ival, bool force) {
     return false;
 }
 
-map_val_t get(hashmap_t *self, map_key_t ikey) {
+map_val_t get(hashmap_t *self, map_key_t inkey) {
     if(self==NULL ||
        self->invalid == true ||
-       ikey.key_base == NULL ||
-       ikey.key_len == 0){
+       inkey.key_base == NULL ||
+       inkey.key_len == 0){
         errno = EINVAL;
         return MAP_VAL(NULL, 0);
     }
 
     pthread_mutex_lock(&self->fields_lock);
-
     self->num_readers++;
     if(self->num_readers == 1) //First reader is in.
         pthread_mutex_lock(&self->write_lock);
-
     pthread_mutex_unlock(&self->fields_lock);
 
 
-    int index = get_index(self, ikey);
+    int index = get_index(self, inkey);
     map_node_t *foundnode = self->nodes + index;
     map_key_t foundkey = foundnode->key;
     map_val_t foundval = foundnode->val;
     // if keys are same, check if val is not null and return accordingly.
-    if(areKeysSame(foundkey, ikey)) {
+    if(areKeysSame(foundkey, inkey)) {
         // check if the wanted node is dead, then return Null
         if (is_node_dead(foundnode)) {
             // WE DONT EVICT THE NODE SEE @1191
@@ -275,7 +273,7 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
             foundval = foundnode->val;
 
             //If keys are same, return accordingly.
-            if(areKeysSame(foundkey, ikey)) {
+            if(areKeysSame(foundkey, inkey)) {
                 // check if the wanted node is dead, then return Null
                 if (is_node_dead(foundnode)) {
                     // WE DONT EVICT THE NODE SEE @1191
@@ -314,16 +312,16 @@ map_val_t get(hashmap_t *self, map_key_t ikey) {
     return MAP_VAL(NULL, 0);
 }
 
-map_node_t delete(hashmap_t *self, map_key_t ikey) {
+map_node_t delete(hashmap_t *self, map_key_t inkey) {
     if(self==NULL ||
        self->invalid == true ||
-       ikey.key_base == NULL ||
-       ikey.key_len == 0){
+       inkey.key_base == NULL ||
+       inkey.key_len == 0){
         errno = EINVAL;
         return MAP_NODE(MAP_KEY(NULL, 0), MAP_VAL(NULL, 0), false);
     }
     pthread_mutex_lock(&self->write_lock);
-    int searched_index = get_node_index(self, ikey);
+    int searched_index = get_node_index(self, inkey);
     if (searched_index != -1) {
         map_node_t* node = self->nodes + searched_index;
         map_node_t nodetoreturn = MAP_NODE(node->key, node->val, true);
@@ -420,6 +418,7 @@ int get_first_deadnode_index_after(hashmap_t *self, int oidx) {
     }
     return -1;
 }
+
 void make_everyone_old_by_one(hashmap_t *self) {
     if(self==NULL || self->invalid == true){
         errno = EINVAL;
@@ -434,15 +433,15 @@ void make_everyone_old_by_one(hashmap_t *self) {
     }
 }
 
-int get_node_index(hashmap_t *self, map_key_t ikey) {
+int get_node_index(hashmap_t *self, map_key_t inkey) {
     //We dont need EINVAL check
     // We dont need mutex checks as well. Since we are doing it under them
 
-    int index = get_index(self, ikey);
+    int index = get_index(self, inkey);
     map_node_t *foundnode = self->nodes + index;
     map_key_t foundkey = foundnode->key;
     // if keys are same, check if val is not null and return accordingly.
-    if(areKeysSame(foundkey, ikey)) {
+    if(areKeysSame(foundkey, inkey)) {
         // check if the wanted node is dead, then return Null
         if (is_node_dead(foundnode)) {
             return -1;
@@ -458,7 +457,7 @@ int get_node_index(hashmap_t *self, map_key_t ikey) {
             foundkey = foundnode->key;
 
             //If keys are same, return accordingly.
-            if(areKeysSame(foundkey, ikey)) {
+            if(areKeysSame(foundkey, inkey)) {
                 // check if the wanted node is dead, then return Null
                 if (is_node_dead(foundnode)) {
                     return -1;

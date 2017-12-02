@@ -10,15 +10,15 @@ set(SOURCE_FILES
         include/const.h
         include/cream.h
         include/debug.h
-        include/extracredit.h
+#        include/extracredit.h
         include/hashmap.h
         include/queue.h
         include/utils.h
         include/csapp.h
         src/cream.c
         src/csapp.c
-        src/extracredit.c
-#        src/hashmap.c
+#        src/extracredit.c
+        src/hashmap.c
         src/queue.c
         src/utils.c
         tests/extracredit_tests.c

@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <memory.h>
 #include <csapp.h>
-#include <extracredit.h>
 #include "cream.h"
 #include "utils.h"
 
@@ -316,22 +315,30 @@ void printhashmap(hashmap_t* hmap) {
     printf("size:%d, capacity:%d\n", hmap->size, hmap->capacity);
     for (int i=0;i<hmap->capacity;i++){
         map_node_t* n = hmap->nodes + i;
-        printf("%s:%s:%ld:%d", (char*) n->key.key_base, (char*) n->val.val_base, n->age, (int) n->timeOfDeath);
-        if(n->tombstone==true)
-            printf("  <-tomb");
-        if(is_this_node_dead(n))
-            printf("  <-dead");
-        printf("\n");
+        if(true) {
+            printf("%s:%s", (char *) n->key.key_base, (char *) n->val.val_base);
+            printf("\n");
+        } else {/*
+            printf("%s:%s:%ld:%d", (char *) n->key.key_base, (char *) n->val.val_base, n->age, (int) n->timeOfDeath);
+            if (n->tombstone == true)
+                printf("  <-tomb");
+            if (is_this_node_dead(n))
+                printf("  <-dead");
+            printf("\n");*/
+        }
     }
     printf("%s\n", strerror(errno));
     printf("\n");
 }
 
 bool is_this_node_dead(map_node_t *node) {
+    /*
     time_t ltime;
     ltime=time(NULL);
     // To avoid he situation where we consider non initialised nodes as dead
     return node->timeOfDeath < ltime && node->timeOfDeath > 0;
+     */
+    return true;
 }
 
 void printqueue(queue_t* q) {
