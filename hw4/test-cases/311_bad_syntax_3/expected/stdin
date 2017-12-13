@@ -1,0 +1,2 @@
+echo hello || nonexistant-program
+exit

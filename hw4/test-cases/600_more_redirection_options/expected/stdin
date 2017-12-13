@@ -1,0 +1,3 @@
+cat sample-files/lorem | grep m | tr '[a-z]' '[A-Z]' > out.txt
+cat < sample-files/lorem | grep m | tr '[a-z]' '[A-Z]' | tr M m
+exit

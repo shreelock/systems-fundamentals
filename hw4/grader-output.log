@@ -1,0 +1,122 @@
+time="2017-12-12T22:07:09Z" level=info msg="Running test case." test-case=100_exit
+time="2017-12-12T22:07:09Z" level=info msg="Finished test case." test-case=100_exit
+time="2017-12-12T22:07:09Z" level=info msg="Starting grading case." test-case=100_exit
+time="2017-12-12T22:07:09Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = , got = \x1b[-18GTueDec12,10:07PM\x1b[0G" possible=2 test-case=100_exit
+time="2017-12-12T22:07:09Z" level=info msg="Running test case." test-case=101_help
+time="2017-12-12T22:07:10Z" level=info msg="Finished test case." test-case=101_help
+time="2017-12-12T22:07:10Z" level=info msg="Starting grading case." test-case=101_help
+time="2017-12-12T22:07:10Z" level=info msg="Finished grading case." earned=2 notes="Full Credit" possible=2 test-case=101_help
+time="2017-12-12T22:07:10Z" level=info msg="Running test case." test-case=102_pwd
+time="2017-12-12T22:07:11Z" level=info msg="Finished test case." test-case=102_pwd
+time="2017-12-12T22:07:11Z" level=info msg="Starting grading case." test-case=102_pwd
+time="2017-12-12T22:07:11Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = /home/student/test-cases/102_pwd/output, got = \x1b[-18GTueDec12,10:07PM\x1b[0G/home/student/test-cases/102_pwd/output\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=3 test-case=102_pwd
+time="2017-12-12T22:07:11Z" level=info msg="Running test case." test-case=103_chdir
+time="2017-12-12T22:07:12Z" level=warning msg="Process terminated with error." error="exit status 139" phase=execution test-case=103_chdir
+time="2017-12-12T22:07:12Z" level=info msg="Finished test case." test-case=103_chdir
+time="2017-12-12T22:07:12Z" level=info msg="Starting grading case." test-case=103_chdir
+time="2017-12-12T22:07:12Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = /home/student/test-cases/103_chdir/output/etc/home/student/test-cases/103_chdir/output/home/student/home/student/home, got = \x1b[-18GTueDec12,10:07PM\x1b[0G/home/student/test-cases/103_chdir/output\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=3 test-case=103_chdir
+time="2017-12-12T22:07:12Z" level=info msg="Running test case." test-case=104_chdir_not_found
+time="2017-12-12T22:07:12Z" level=info msg="Finished test case." test-case=104_chdir_not_found
+time="2017-12-12T22:07:12Z" level=info msg="Starting grading case." test-case=104_chdir_not_found
+time="2017-12-12T22:07:13Z" level=info msg="Finished grading case." earned=3 notes="Full Credit" possible=3 test-case=104_chdir_not_found
+time="2017-12-12T22:07:13Z" level=info msg="Running test case." test-case=200_hello
+time="2017-12-12T22:07:13Z" level=info msg="Finished test case." test-case=200_hello
+time="2017-12-12T22:07:13Z" level=info msg="Starting grading case." test-case=200_hello
+time="2017-12-12T22:07:23Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = helloworld, got = \x1b[-18GTueDec12,10:07PM\x1b[0Ghelloworld\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=6 test-case=200_hello
+time="2017-12-12T22:07:23Z" level=info msg="Running test case." test-case=201_hello_from_path
+time="2017-12-12T22:07:25Z" level=info msg="Finished test case." test-case=201_hello_from_path
+time="2017-12-12T22:07:25Z" level=info msg="Starting grading case." test-case=201_hello_from_path
+time="2017-12-12T22:07:25Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = hellofrompath, got = \x1b[-18GTueDec12,10:07PM\x1b[0Ghellofrompath\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=6 test-case=201_hello_from_path
+time="2017-12-12T22:07:25Z" level=info msg="Running test case." test-case=202_echo
+time="2017-12-12T22:07:26Z" level=info msg="Finished test case." test-case=202_echo
+time="2017-12-12T22:07:26Z" level=info msg="Starting grading case." test-case=202_echo
+time="2017-12-12T22:07:26Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = helloworld, got = \x1b[-18GTueDec12,10:07PM\x1b[0Ghelloworld\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=6 test-case=202_echo
+time="2017-12-12T22:07:26Z" level=info msg="Running test case." test-case=203_cat
+time="2017-12-12T22:07:27Z" level=info msg="Finished test case." test-case=203_cat
+time="2017-12-12T22:07:27Z" level=info msg="Starting grading case." test-case=203_cat
+time="2017-12-12T22:07:27Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = loremipsumdolorsitamet, got = \x1b[-18GTueDec12,10:07PM\x1b[0Gloremipsumdolorsitamet\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=6 test-case=203_cat
+time="2017-12-12T22:07:27Z" level=info msg="Running test case." test-case=204_exec_not_found
+time="2017-12-12T22:07:28Z" level=info msg="Finished test case." test-case=204_exec_not_found
+time="2017-12-12T22:07:28Z" level=info msg="Starting grading case." test-case=204_exec_not_found
+time="2017-12-12T22:07:28Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=6 test-case=204_exec_not_found
+time="2017-12-12T22:07:28Z" level=info msg="Running test case." test-case=300_output_redirection
+time="2017-12-12T22:07:29Z" level=info msg="Finished test case." test-case=300_output_redirection
+time="2017-12-12T22:07:29Z" level=info msg="Starting grading case." test-case=300_output_redirection
+time="2017-12-12T22:07:29Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = , got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=3 test-case=300_output_redirection
+time="2017-12-12T22:07:29Z" level=info msg="Running test case." test-case=301_input_redirection
+time="2017-12-12T22:07:31Z" level=info msg="Finished test case." test-case=301_input_redirection
+time="2017-12-12T22:07:31Z" level=info msg="Starting grading case." test-case=301_input_redirection
+time="2017-12-12T22:07:31Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = loremipsumdolorsitamet, got = \x1b[-18GTueDec12,10:07PM\x1b[0Gloremipsumdolorsitamet\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=3 test-case=301_input_redirection
+time="2017-12-12T22:07:31Z" level=info msg="Running test case." test-case=302_input_output_redirection
+time="2017-12-12T22:07:32Z" level=info msg="Finished test case." test-case=302_input_output_redirection
+time="2017-12-12T22:07:32Z" level=info msg="Starting grading case." test-case=302_input_output_redirection
+time="2017-12-12T22:07:32Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = , got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=3 test-case=302_input_output_redirection
+time="2017-12-12T22:07:32Z" level=info msg="Running test case." test-case=303_double_output_redirection
+time="2017-12-12T22:07:33Z" level=info msg="Finished test case." test-case=303_double_output_redirection
+time="2017-12-12T22:07:33Z" level=info msg="Starting grading case." test-case=303_double_output_redirection
+time="2017-12-12T22:07:33Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=303_double_output_redirection
+time="2017-12-12T22:07:33Z" level=info msg="Running test case." test-case=304_double_input_redirection
+time="2017-12-12T22:07:34Z" level=info msg="Finished test case." test-case=304_double_input_redirection
+time="2017-12-12T22:07:34Z" level=info msg="Starting grading case." test-case=304_double_input_redirection
+time="2017-12-12T22:07:34Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=304_double_input_redirection
+time="2017-12-12T22:07:34Z" level=info msg="Running test case." test-case=305_help_redirection
+time="2017-12-12T22:07:35Z" level=info msg="Finished test case." test-case=305_help_redirection
+time="2017-12-12T22:07:35Z" level=info msg="Starting grading case." test-case=305_help_redirection
+time="2017-12-12T22:07:35Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = , got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=2 test-case=305_help_redirection
+time="2017-12-12T22:07:35Z" level=info msg="Running test case." test-case=306_pwd_redirection
+time="2017-12-12T22:07:36Z" level=info msg="Finished test case." test-case=306_pwd_redirection
+time="2017-12-12T22:07:36Z" level=info msg="Starting grading case." test-case=306_pwd_redirection
+time="2017-12-12T22:07:36Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = , got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=2 test-case=306_pwd_redirection
+time="2017-12-12T22:07:36Z" level=info msg="Running test case." test-case=307_single_pipe
+time="2017-12-12T22:07:37Z" level=info msg="Finished test case." test-case=307_single_pipe
+time="2017-12-12T22:07:37Z" level=info msg="Starting grading case." test-case=307_single_pipe
+time="2017-12-12T22:07:37Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = loremipsumamet, got = \x1b[-18GTueDec12,10:07PM\x1b[0Gloremipsumamet\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=2 test-case=307_single_pipe
+time="2017-12-12T22:07:37Z" level=info msg="Running test case." test-case=308_multiple_pipes
+time="2017-12-12T22:07:39Z" level=info msg="Finished test case." test-case=308_multiple_pipes
+time="2017-12-12T22:07:39Z" level=info msg="Starting grading case." test-case=308_multiple_pipes
+time="2017-12-12T22:07:39Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = LOREmIPSUmAmET, got = \x1b[-18GTueDec12,10:07PM\x1b[0GLOREmIPSUmAmET\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=2 test-case=308_multiple_pipes
+time="2017-12-12T22:07:39Z" level=info msg="Running test case." test-case=309_bad_syntax_1
+time="2017-12-12T22:07:40Z" level=info msg="Finished test case." test-case=309_bad_syntax_1
+time="2017-12-12T22:07:40Z" level=info msg="Starting grading case." test-case=309_bad_syntax_1
+time="2017-12-12T22:07:40Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=309_bad_syntax_1
+time="2017-12-12T22:07:40Z" level=info msg="Running test case." test-case=310_bad_syntax_2
+time="2017-12-12T22:07:41Z" level=info msg="Finished test case." test-case=310_bad_syntax_2
+time="2017-12-12T22:07:41Z" level=info msg="Starting grading case." test-case=310_bad_syntax_2
+time="2017-12-12T22:07:41Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=310_bad_syntax_2
+time="2017-12-12T22:07:41Z" level=info msg="Running test case." test-case=311_bad_syntax_3
+time="2017-12-12T22:07:42Z" level=info msg="Finished test case." test-case=311_bad_syntax_3
+time="2017-12-12T22:07:42Z" level=info msg="Starting grading case." test-case=311_bad_syntax_3
+time="2017-12-12T22:07:42Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = sfishsyntaxerror:.+, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=1 test-case=311_bad_syntax_3
+time="2017-12-12T22:07:42Z" level=info msg="Running test case." test-case=312_bad_syntax_4
+time="2017-12-12T22:07:43Z" level=info msg="Finished test case." test-case=312_bad_syntax_4
+time="2017-12-12T22:07:43Z" level=info msg="Starting grading case." test-case=312_bad_syntax_4
+time="2017-12-12T22:07:43Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=312_bad_syntax_4
+time="2017-12-12T22:07:43Z" level=info msg="Running test case." test-case=313_bad_syntax_5
+time="2017-12-12T22:07:44Z" level=info msg="Finished test case." test-case=313_bad_syntax_5
+time="2017-12-12T22:07:44Z" level=info msg="Starting grading case." test-case=313_bad_syntax_5
+time="2017-12-12T22:07:44Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=313_bad_syntax_5
+time="2017-12-12T22:07:44Z" level=info msg="Running test case." test-case=314_bad_syntax_6
+time="2017-12-12T22:07:46Z" level=info msg="Finished test case." test-case=314_bad_syntax_6
+time="2017-12-12T22:07:46Z" level=info msg="Starting grading case." test-case=314_bad_syntax_6
+time="2017-12-12T22:07:46Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=314_bad_syntax_6
+time="2017-12-12T22:07:46Z" level=info msg="Running test case." test-case=315_bad_syntax_7
+time="2017-12-12T22:07:47Z" level=info msg="Finished test case." test-case=315_bad_syntax_7
+time="2017-12-12T22:07:47Z" level=info msg="Starting grading case." test-case=315_bad_syntax_7
+time="2017-12-12T22:07:47Z" level=info msg="Finished grading case." earned=1 notes="Full Credit" possible=1 test-case=315_bad_syntax_7
+time="2017-12-12T22:07:47Z" level=info msg="Running test case." test-case=316_piped_exec_error_1
+time="2017-12-12T22:07:48Z" level=info msg="Finished test case." test-case=316_piped_exec_error_1
+time="2017-12-12T22:07:48Z" level=info msg="Starting grading case." test-case=316_piped_exec_error_1
+time="2017-12-12T22:07:48Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=1 test-case=316_piped_exec_error_1
+time="2017-12-12T22:07:48Z" level=info msg="Running test case." test-case=317_piped_exec_error_2
+time="2017-12-12T22:07:49Z" level=info msg="Finished test case." test-case=317_piped_exec_error_2
+time="2017-12-12T22:07:49Z" level=info msg="Starting grading case." test-case=317_piped_exec_error_2
+time="2017-12-12T22:07:49Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=1 test-case=317_piped_exec_error_2
+time="2017-12-12T22:07:49Z" level=info msg="Running test case." test-case=600_more_redirection_options
+time="2017-12-12T22:07:51Z" level=info msg="Finished test case." test-case=600_more_redirection_options
+time="2017-12-12T22:07:51Z" level=info msg="Starting grading case." test-case=600_more_redirection_options
+time="2017-12-12T22:07:51Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = LOREmIPSUmAmET, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0GLOREmIPSUmAmET\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=5 test-case=600_more_redirection_options
+time="2017-12-12T22:07:51Z" level=info msg="Running test case." test-case=601_command_substitution
+time="2017-12-12T22:07:53Z" level=info msg="Finished test case." test-case=601_command_substitution
+time="2017-12-12T22:07:53Z" level=info msg="Starting grading case." test-case=601_command_substitution
+time="2017-12-12T22:07:53Z" level=info msg="Finished grading case." earned=0 notes="No Credit; Output doesnt match: expected regex = helloworldhelloipsumdolorsitamet, got = \x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G\x1b[-18GTueDec12,10:07PM\x1b[0G" possible=5 test-case=601_command_substitution
+time="2017-12-12T22:07:53Z" level=info msg="--- GRADING COMPLETE ---"

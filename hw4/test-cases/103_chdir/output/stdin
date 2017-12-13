@@ -1,0 +1,12 @@
+pwd
+cd /etc
+pwd
+cd -
+pwd
+cd
+pwd
+cd .
+pwd
+cd ..
+pwd
+exit

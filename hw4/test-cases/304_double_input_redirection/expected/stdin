@@ -1,0 +1,2 @@
+cat < sample-files/lorem < sample-files/lorem
+exit

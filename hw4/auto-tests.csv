@@ -1,0 +1,31 @@
+Test Case,Point Possible,Points Earned,Notes
+100_exit,2,0,"No Credit; Output doesnt match: expected regex = , got = [-18GTueDec12,10:07PM[0G"
+101_help,2,2,Full Credit
+102_pwd,3,0,"No Credit; Output doesnt match: expected regex = /home/student/test-cases/102_pwd/output, got = [-18GTueDec12,10:07PM[0G/home/student/test-cases/102_pwd/output[-18GTueDec12,10:07PM[0G"
+103_chdir,3,0,"No Credit; Output doesnt match: expected regex = /home/student/test-cases/103_chdir/output/etc/home/student/test-cases/103_chdir/output/home/student/home/student/home, got = [-18GTueDec12,10:07PM[0G/home/student/test-cases/103_chdir/output[-18GTueDec12,10:07PM[0G"
+104_chdir_not_found,3,3,Full Credit
+200_hello,6,0,"No Credit; Output doesnt match: expected regex = helloworld, got = [-18GTueDec12,10:07PM[0Ghelloworld[-18GTueDec12,10:07PM[0G"
+201_hello_from_path,6,0,"No Credit; Output doesnt match: expected regex = hellofrompath, got = [-18GTueDec12,10:07PM[0Ghellofrompath[-18GTueDec12,10:07PM[0G"
+202_echo,6,0,"No Credit; Output doesnt match: expected regex = helloworld, got = [-18GTueDec12,10:07PM[0Ghelloworld[-18GTueDec12,10:07PM[0G"
+203_cat,6,0,"No Credit; Output doesnt match: expected regex = loremipsumdolorsitamet, got = [-18GTueDec12,10:07PM[0Gloremipsumdolorsitamet[-18GTueDec12,10:07PM[0G"
+204_exec_not_found,6,0,"No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+300_output_redirection,3,0,"No Credit; Output doesnt match: expected regex = , got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+301_input_redirection,3,0,"No Credit; Output doesnt match: expected regex = loremipsumdolorsitamet, got = [-18GTueDec12,10:07PM[0Gloremipsumdolorsitamet[-18GTueDec12,10:07PM[0G"
+302_input_output_redirection,3,0,"No Credit; Output doesnt match: expected regex = , got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+303_double_output_redirection,1,1,Full Credit
+304_double_input_redirection,1,1,Full Credit
+305_help_redirection,2,0,"No Credit; Output doesnt match: expected regex = , got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+306_pwd_redirection,2,0,"No Credit; Output doesnt match: expected regex = , got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+307_single_pipe,2,0,"No Credit; Output doesnt match: expected regex = loremipsumamet, got = [-18GTueDec12,10:07PM[0Gloremipsumamet[-18GTueDec12,10:07PM[0G"
+308_multiple_pipes,2,0,"No Credit; Output doesnt match: expected regex = LOREmIPSUmAmET, got = [-18GTueDec12,10:07PM[0GLOREmIPSUmAmET[-18GTueDec12,10:07PM[0G"
+309_bad_syntax_1,1,1,Full Credit
+310_bad_syntax_2,1,1,Full Credit
+311_bad_syntax_3,1,0,"No Credit; Output doesnt match: expected regex = sfishsyntaxerror:.+, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+312_bad_syntax_4,1,1,Full Credit
+313_bad_syntax_5,1,1,Full Credit
+314_bad_syntax_6,1,1,Full Credit
+315_bad_syntax_7,1,1,Full Credit
+316_piped_exec_error_1,1,0,"No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+317_piped_exec_error_2,1,0,"No Credit; Output doesnt match: expected regex = sfish:.+:commandnotfound, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"
+600_more_redirection_options,5,0,"No Credit; Output doesnt match: expected regex = LOREmIPSUmAmET, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0GLOREmIPSUmAmET[-18GTueDec12,10:07PM[0G"
+601_command_substitution,5,0,"No Credit; Output doesnt match: expected regex = helloworldhelloipsumdolorsitamet, got = [-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G[-18GTueDec12,10:07PM[0G"

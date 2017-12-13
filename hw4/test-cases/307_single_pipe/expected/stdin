@@ -1,0 +1,2 @@
+cat sample-files/lorem | grep m
+exit

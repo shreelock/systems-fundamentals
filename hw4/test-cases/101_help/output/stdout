@@ -1,0 +1,6 @@
+[-18GTue Dec 12, 10:07PM[0GFollowing are the builtin commands -
+1. help: Print a list of all builtins and their basic usage in a single column.
+2. exit: Exits the shell.
+3. cd: Changes the current working directory of the shell.
+4. pwd: Prints the absolute path of the current working directory.
+[-18GTue Dec 12, 10:07PM[0G

@@ -1,0 +1,3 @@
+echo `echo hello world`
+sed `echo s/lorem/hello/` sample-files/lorem
+exit
