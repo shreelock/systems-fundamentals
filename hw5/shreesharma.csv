@@ -1,0 +1,40 @@
+TESTS,POINTS,OUTOF,NOTES
+15_delete_twice,2,2,
+08_check_readers,2,2,
+16_invalidate_map,0,2,"16_invalidate_map.c:29: 97 items were destroyed, expected 98"
+20_mt_delete_interleaved,3,3,
+18_mt_put_interleaved,3,3,
+03_simple_put,1,1,
+13_get_change_hash_function,2,2,
+09_get_one,2,2,
+06_existing_key_no_force,0,2,helpers.c:76: Put returned: 0. Expected: 1
+05_simple_overwrite,1,1,
+19_mt_get_interleaved,3,3,
+12_get_after_put_force,2,2,
+04_simple_linear_probe,1,1,
+17_clear_map,0,2,"17_clear_map.c:29: 97 items were destroyed, expected 98"
+02_invalid_params,1,1,
+14_simple_delete,2,2,
+10_get_linear_probe_over_tombstone,2,2,
+01_non_null_creation,1,1,
+07_change_hash_function,2,2,
+21_mt_put_get_interleaved,3,3,
+02_enqueue_one_dequeue_one,2,2,
+06_enqueue_interleave_many,2,2,
+05_invalidate_with_lock,2,2,
+08_enqueue_dequeue_interleave,2,2,
+00_create,2,2,
+04_invalidate_all_items,2,2,
+10_enqueue_invalid_params,2,2,
+03_enqueue_many_dequeue_many,2,2,
+11_dequeue_invalid_params,2,2,
+07_dequeue_interleave_many,2,2,
+09_stress_test,4,4,
+12_invalidate_invalid_params,2,2,
+EC_01_lru_put,3,3,
+EC_03_linear_probe_ttl,3,3,
+EC_01_simple_ttl,0,3,EC_01_simple_ttl.c:13: Get returned non-null after TTL
+EC_02_replace_tt,0,3,helpers.c:91: Key in the node doesn't match inserted key
+EC_03_lru_delete,0,3,helpers.c:91: Key in the node doesn't match inserted key
+EC_TOTAL,6,18,
+TOTAL,59,67,
