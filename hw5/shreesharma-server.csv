@@ -1,0 +1,13 @@
+Tests,Points,OutOf,Notes
+test_clear,3,3,
+test_evict,0,3,Server sent an incorrect value to the client.
+test_multiple_put_and_gets,0,3,Server sent an incorrect value to the client.
+test_one_thread_two_gets,3,3,
+test_single_put_and_get,0,3,Server sent an incorrect value to the client.
+test_two_threads_two_gets,3,3,
+test_large_requests,0,3,Server sent an incorrect value to the client.
+test_stress_test,0,3,Server sent an incorrect value to the client.
+test_EPIPE,0,3,Server sent an incorrect value to the client.
+test_SIGPIPE,0,3,Server sent response header with an incorrect response code to the client.
+test_invalid_request,0,3,[Errno 99] Cannot assign requested address
+Total,9,33,
